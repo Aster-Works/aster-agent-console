@@ -4,11 +4,12 @@ All notable changes to Aster Agent Console are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] — 2026-07-03
 
-Public-beta preparation: documentation set (quickstart, privacy, limitations,
-MCP security, troubleshooting), contributing guide, issue/PR templates, license,
-and this changelog. No functional changes.
+### Documentation
+
+- README now embeds a product-tour GIF and per-screen screenshots (demo data).
+- No functional changes to the collector, CLI, or scanner.
 
 ## [0.1.0] — 2026-07-03
 
@@ -44,5 +45,5 @@ First public beta (Phases 1–6).
 - The local server enforces a host-header guard, a JSON-only content type, and
   a request-body size limit.
 
-[Unreleased]: https://github.com/Aster-Works/aster-agent-console/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/Aster-Works/aster-agent-console/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Aster-Works/aster-agent-console/releases/tag/v0.1.0
