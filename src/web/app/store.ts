@@ -56,9 +56,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (ds) {
       set({ dataset: ds, liveState: "ready", source: "live" });
       connectSse(get().loadLive);
+      return;
+    }
+    // No dataset yet. Distinguish "collector up but empty" from "offline" so a
+    // freshly-hooked user who just hasn't run an agent yet stays connected and
+    // flips to live the moment their first event lands.
+    const online = await probeHealth();
+    if (online) {
+      set({ source: "live", liveState: "empty", dataset: getDemoDataset() });
+      connectSse(get().loadLive);
     } else {
-      // Keep demo data visible but record that live had no data.
-      set({ liveState: "empty", dataset: getDemoDataset() });
+      sse?.close();
+      sse = null;
+      set({ source: "demo", liveState: "error", dataset: getDemoDataset() });
     }
   },
 
@@ -67,6 +77,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDateRange: (dateRange) => set({ dateRange }),
   setSearch: (search) => set({ search }),
 }));
+
+async function probeHealth(): Promise<boolean> {
+  try {
+    const r = await fetch("/health", { headers: { accept: "application/json" } });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
 
 function connectSse(onEvent: () => void) {
   if (sse) return;

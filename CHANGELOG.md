@@ -4,6 +4,16 @@ All notable changes to Aster Agent Console are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] — 2026-07-03
+
+### Fixed
+
+- The dashboard now **auto-detects the local collector on startup** and shows
+  your real agent activity (live) instead of demo data. Previously it stayed on
+  demo until you manually flipped the Demo→Live toggle, so installed users saw
+  only demo data even with their own sessions collected. New events stream in
+  live via SSE, and an offline collector cleanly falls back to demo.
+
 ## [0.1.1] — 2026-07-03
 
 ### Documentation
@@ -45,5 +55,6 @@ First public beta (Phases 1–6).
 - The local server enforces a host-header guard, a JSON-only content type, and
   a request-body size limit.
 
+[0.1.2]: https://github.com/Aster-Works/aster-agent-console/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Aster-Works/aster-agent-console/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Aster-Works/aster-agent-console/releases/tag/v0.1.0

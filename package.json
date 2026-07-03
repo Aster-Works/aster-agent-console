@@ -1,6 +1,6 @@
 {
   "name": "@asterworks/agent-console",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "Local-first AI coding agent safety, work audit, and outcome dashboard for Claude Code and Codex.",
   "type": "module",
