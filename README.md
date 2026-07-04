@@ -45,12 +45,13 @@ New here? The **[5-minute quickstart](docs/quickstart.md)** takes you from insta
 | 4 | Claude Code + Codex hook integration (install + spool) | ✅ Done |
 | 5 | Git & test enrichment (real file diffs, commit association, test results) | ✅ Done |
 | 6 | AsterGuard integration — MCP config scan, `AAC-MCP-*` rules, policy config, posture grade | ✅ Done |
-| 7 | Public beta — docs, license, feedback templates, npm publish | 🚧 In progress |
+| 7 | Public beta — docs, license, feedback templates, npm publish | ✅ Done |
+| 8 | Codex rollout-log ingestion, Insights (latency/failures/file-types/trend/outcomes), configurable Settings, actionable Risk Radar, Japanese UI | ✅ Done |
 
-76 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Phase 5
-git execution code was hardened via an adversarial multi-agent review (11 findings
-fixed), and the Phase 7 docs were fact-checked against the source by an adversarial
-multi-agent pass (21 corrections applied).
+113 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Security
+code has been hardened by adversarial multi-agent reviews — e.g. one caught and
+fixed a real secret-redaction bug (case-sensitive key matching that missed
+lowercase keys) before release.
 
 ## Documentation
 
