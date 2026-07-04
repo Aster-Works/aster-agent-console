@@ -1,8 +1,8 @@
 {
   "name": "@asterworks/agent-console",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "private": false,
-  "description": "Local-first AI coding agent safety, work audit, and outcome dashboard for Claude Code and Codex.",
+  "description": "The local-first, no-account console that unifies safety, work-audit, and MCP security for Claude Code and Codex — everything runs on your machine.",
   "type": "module",
   "license": "MIT",
   "author": "Aster Works",

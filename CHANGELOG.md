@@ -4,6 +4,17 @@ All notable changes to Aster Agent Console are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15] — 2026-07-04
+
+### Changed
+
+- **Repositioning (docs).** The README, Japanese guide, and npm description now
+  lead with what's distinctive: the one **local-first, no-account** console that
+  unifies safety + work-audit + **MCP security** across **both Claude Code and
+  Codex** — versus cost-only CLIs and account/cloud security scanners.
+- Added a **Sponsor** button (`FUNDING.yml`) and a **Pro/Team interest** thread
+  (#1) to gauge demand for an optional team tier. No behavior change.
+
 ## [0.1.14] — 2026-07-04
 
 ### Added

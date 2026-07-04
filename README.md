@@ -1,16 +1,16 @@
 # Aster Agent Console
 
-> Local-first AI coding agent **safety, work audit, and outcome** dashboard for Claude Code and Codex.
+> The **local-first, no-account** console that unifies **safety + work-audit + MCP security** for **Claude Code _and_ Codex** — everything runs on your machine.
 
 ![Aster Agent Console — product tour](docs/assets/demo-tour.gif)
 
 Aster Agent Console makes the work of AI coding agents visible along three axes:
 
-1. **Safety** — dangerous shell commands, secret exposure, MCP permission risk, network/file/git operations.
+1. **Safety** — dangerous shell commands, secret exposure, **MCP-server permission & vulnerability scan**, network/file/git operations.
 2. **Work Audit** — an explainable timeline from user prompt → tool call → file diff → tests → commit.
 3. **Outcome** — sessions, files changed, tests, commits, PR readiness, and cost per useful work.
 
-It is **not** a generic token/cost analytics dashboard. It is an AsterGuard-flavored agent safety & work-audit console.
+**Why this one?** Cost CLIs (e.g. `ccusage`) only track spend; cloud agent-security scanners increasingly require an account and send data off-box. Aster Agent Console is the one console that puts **real safety detection + an explainable work-audit timeline + a real MCP security scan** in a single **local, no-account** dashboard — and it covers **both Claude Code and Codex** (Codex via its session/rollout logs, which most tools skip). Your code and prompts never leave your machine.
 
 ## Install
 
@@ -175,6 +175,19 @@ src/
 
 Local data lives under `~/.aster-agent-console/` (config, `agent-console.db`, `hooks/`, `backups/`, `spool/`, optional `policy.json`).
 
+## Sponsor & Pro
+
+Aster Agent Console is free and open source, and stays that way for individual
+local use. If it saves you time, you can **[sponsor development](https://github.com/sponsors/jimiaki7)** —
+it directly funds new detection rules and broader agent coverage.
+
+**An optional Pro / Team tier is being explored** — multi-developer aggregation,
+policy-as-code distribution, compliance/audit report export (PDF/CSV), longer
+retention, and dashboard SSO, most likely as a **one-time license** (local-first,
+no mandatory cloud). **Would you use it?** 👍 and comment on the
+**[Pro/Team interest thread (#1)](https://github.com/Aster-Works/aster-agent-console/issues/1)** —
+that demand decides what gets built.
+
 ## Feedback
 
 This is a beta — bug reports and feature ideas are welcome via
@@ -191,7 +204,9 @@ MIT © Aster Works — see [LICENSE](LICENSE).
 
 # 日本語ガイド
 
-**Aster Agent Console** は、Claude Code と Codex の作業を「安全に・見える化」する、ローカル完結型のダッシュボードです。汎用のトークン/コスト分析ツールではなく、**AI コーディングエージェントの安全監査・作業監査・成果**に特化しています。
+**Aster Agent Console** は、**Claude Code と Codex の両方**を対象に、**安全性・作業監査・MCPセキュリティ**を1つにまとめた、**完全ローカル・アカウント不要**のダッシュボードです。
+
+コスト集計だけのCLI（`ccusage` 等）や、アカウント必須・データを外に送るクラウド型のエージェントセキュリティとは違い、**実際の危険検知＋説明可能な作業タイムライン＋実MCPセキュリティ診断**を、**あなたのマシン内で完結**して提供します。とくに **Codex のセッション/rolloutログ取り込み**は、多くのツールが対応していない領域です。コードもプロンプトも、マシンの外には出ません。
 
 > **アカウント不要・クラウド不要。エージェントの履歴はあなたのマシンに残ります。**
 
@@ -251,6 +266,12 @@ aster-agent scan        # MCP 設定のセキュリティ診断
 ## ドキュメント（英語）
 
 [Quickstart](docs/quickstart.md)・[プライバシー](docs/privacy.md)・[MCP セキュリティ](docs/mcp-security.md)・[既知の制限](docs/limitations.md)・[トラブルシューティング](docs/troubleshooting.md)・[Changelog](CHANGELOG.md)。
+
+## スポンサー & Pro
+
+本ツールは無料・オープンソースで、個人のローカル利用は今後も無料のままです。役に立ったら **[開発をスポンサー](https://github.com/sponsors/jimiaki7)** していただけると、新しい検知ルールや対応エージェントの拡充に直接つながります。
+
+**任意の Pro / Team 層を検討中**です（複数開発者の集約・ポリシー配布・監査/コンプラレポート出力・長期保持・SSO、おそらく**買い切りライセンス**でクラウド必須にはしません）。**使いたいと思ったら**、**[Pro/Team 需要スレッド (#1)](https://github.com/Aster-Works/aster-agent-console/issues/1)** に 👍・コメントをください。何を作るかはその需要で決めます。
 
 ## フィードバック
 
