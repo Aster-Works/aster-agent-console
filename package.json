@@ -1,6 +1,6 @@
 {
   "name": "@asterworks/agent-console",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "private": false,
   "description": "The local-first, no-account console that unifies safety, work-audit, and MCP security for Claude Code and Codex — everything runs on your machine.",
   "type": "module",
@@ -48,6 +48,7 @@
     "build:web": "vite build",
     "build:cli": "tsup",
     "build:all": "pnpm build && pnpm build:cli",
+    "prepublishOnly": "pnpm build:all",
     "preview": "vite preview",
     "serve": "tsx src/server/start.ts",
     "aster-agent": "tsx src/cli/index.ts",

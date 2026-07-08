@@ -7,6 +7,7 @@
 import type { AgentName } from "@core/types";
 import type { Dataset } from "@core/views";
 import { buildOverview, buildRepoActivity } from "@core/aggregate";
+import { eventSearchText } from "../lib/describe";
 
 export type Filters = {
   agentFilter: AgentName | "all";
@@ -28,11 +29,23 @@ export function repoOptions(dataset: Dataset): string[] {
 
 function cutoff(dateRange: string): number {
   const now = Date.now();
+  if (dateRange === "all") return -Infinity; // audit tool: everything stored must be reachable
   if (dateRange === "7d") return now - 7 * 86_400_000;
   if (dateRange === "30d") return now - 30 * 86_400_000;
   const d = new Date(); // "today" → local midnight
   d.setHours(0, 0, 0, 0);
   return d.getTime();
+}
+
+/**
+ * A session belongs in the window if it was still running inside it. Testing
+ * only `startedAt` makes a long multi-day session — and every event in it —
+ * vanish as a unit the moment its start crosses the boundary.
+ */
+function sessionEnd(s: { startedAt: string; endedAt?: string }): number {
+  const started = Date.parse(s.startedAt);
+  const ended = Date.parse(s.endedAt ?? "");
+  return Number.isNaN(ended) ? started : Math.max(started, ended);
 }
 
 export function applyFilters(dataset: Dataset, f: Filters): Dataset {
@@ -44,11 +57,14 @@ export function applyFilters(dataset: Dataset, f: Filters): Dataset {
   const sessions = dataset.sessions.filter((s) => {
     if (f.agentFilter !== "all" && s.agent !== f.agentFilter) return false;
     if (repoFilter && base(s.repoPath) !== repoFilter) return false;
-    const t = Date.parse(s.startedAt);
+    const t = sessionEnd(s);
     if (!Number.isNaN(t) && t < since) return false;
     if (q) {
       const hay = `${s.summary ?? ""} ${s.repoPath ?? ""} ${s.id}`.toLowerCase();
-      if (!hay.includes(q)) return false;
+      const inSession = hay.includes(q);
+      // Also match on what the agent actually did inside the session.
+      const inEvents = (dataset.eventsBySession[s.id] ?? []).some((e) => eventSearchText(e).includes(q));
+      if (!inSession && !inEvents) return false;
     }
     return true;
   });

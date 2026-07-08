@@ -47,8 +47,9 @@ New here? The **[5-minute quickstart](docs/quickstart.md)** takes you from insta
 | 6 | AsterGuard integration — MCP config scan, `AAC-MCP-*` rules, policy config, posture grade | ✅ Done |
 | 7 | Public beta — docs, license, feedback templates, npm publish | ✅ Done |
 | 8 | Codex rollout-log ingestion, Insights (latency/failures/file-types/trend/outcomes), configurable Settings, actionable Risk Radar, Japanese UI | ✅ Done |
+| 9 | Activity Log — searchable when/where/what across every recorded action | ✅ Done |
 
-113 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Security
+124 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Security
 code has been hardened by adversarial multi-agent reviews — e.g. one caught and
 fixed a real secret-redaction bug (case-sensitive key matching that missed
 lowercase keys) before release.
@@ -130,6 +131,7 @@ event is spooled to `~/.aster-agent-console/spool/` and replayed on the next
 ## Screens
 
 - **Overview** — KPI strip, Claude Code vs Codex comparison, risk radar, cost, live activity, repo heatmap.
+- **Activity Log** — every recorded action as one searchable audit table: **when**, which agent, **where** (repo + file), **what** (the actual command, never `Bash complete`), and how it ended. Search reaches into command text, file names, tools and repos.
 - **Session Replay** — multi-track timeline (User / Agent / Shell / Files / Tests / Git) with a scrubbable playhead and an event inspector (input, redacted output, diff, risk).
 - **Repo Activity** — directory treemap, hot files, git timeline, contribution heatmap, file inspector.
 - **Risk Radar** — severity counters, risk surface radar, category × severity matrix, finding details, MCP permission map, policy timeline.
@@ -152,7 +154,7 @@ event is spooled to `~/.aster-agent-console/spool/` and replayed on the next
 ```bash
 pnpm install
 pnpm dev          # http://127.0.0.1:5173
-pnpm test         # 76 unit/integration tests
+pnpm test         # 124 unit/integration tests
 pnpm typecheck:all
 pnpm build:all    # dist/web (dashboard) + dist-cli (CLI bundle)
 ```
@@ -254,8 +256,9 @@ aster-agent scan        # MCP 設定のセキュリティ診断
 
 ## 画面
 
-概要 / セッション再生 / リポジトリ活動 / リスクレーダー / エージェント / インサイト / 設定。
+概要 / 操作ログ / セッション再生 / リポジトリ活動 / リスクレーダー / エージェント / インサイト / 設定。
 
+- **操作ログ** — AI エージェントが **いつ・どこで（リポジトリとファイル）・何を（実際のコマンド）** 実行したかを1枚の監査表で一覧。コマンド本文・ファイル名・ツール名・リポジトリ名まで検索できます。失敗した操作は終了コードとともに赤字で表示されます。
 - **リスクレーダー** — 危険操作・秘密露出・MCP リスクを「安全スコア」と一緒に俯瞰。指摘は **解決（Resolve）** でマークでき、鍵ローテートへ誘導します。
 - **インサイト** — トークン構成・キャッシュ率・コスト効率・ツール利用・レイテンシ・失敗率・ファイル種別・日次推移・セッション転帰。
 - **設定** — 連携状況・保存先・保持日数（編集可）・料金表（編集可）・エクスポート・診断。

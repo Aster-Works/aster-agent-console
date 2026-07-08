@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  Check,
   ChevronDown,
   Clock,
   FileCode2,
@@ -27,6 +28,7 @@ import { CommandBlock } from "../components/CommandBlock";
 import { DiffViewer, type DiffLine } from "../components/DiffViewer";
 import { cn } from "../lib/cn";
 import { useT } from "../lib/i18n";
+import { describeEvent, eventCommand, isCompletion } from "../lib/describe";
 import {
   AGENT_COLOR_VAR,
   formatClock,
@@ -272,11 +274,15 @@ function EventPill({
   const isRisk = event.type === "risk_finding";
   const sev = event.risk?.[0]?.severity;
   const ring = isRisk ? "var(--color-danger)" : selected ? "var(--color-sel)" : "transparent";
+  // WHAT the agent did — the command/file, not "Bash complete".
+  const { what } = describeEvent(event);
+  const done = isCompletion(event);
+  const exit = event.metrics?.exitCode;
   return (
     <button
       type="button"
       onClick={onClick}
-      title={event.title}
+      title={what}
       className="absolute z-10 flex -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-left text-[11px] transition-colors hover:z-20"
       style={{
         top,
@@ -289,11 +295,25 @@ function EventPill({
       }}
     >
       {isRisk && <ShieldAlert size={11} className="shrink-0" style={{ color: "var(--color-danger)" }} />}
+      {done && !isRisk && <Check size={10} className="shrink-0 text-ink-3" />}
       {sev && <span className="sr-only">{sev}</span>}
-      <span className="aac-truncate">{event.title}</span>
-      {event.toolName && (
-        <span className="ml-auto shrink-0 pl-2 font-mono text-[9px] text-ink-3">{event.toolName}</span>
-      )}
+      <span className={cn("aac-truncate", done && "text-ink-2")}>{what}</span>
+      <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+        {event.metrics?.durationMs != null && (
+          <span className="aac-tnum font-mono text-[9px] text-ink-3">
+            {formatDuration(event.metrics.durationMs)}
+          </span>
+        )}
+        {exit != null && exit !== 0 && (
+          <span
+            className="rounded px-1 font-mono text-[9px] text-danger"
+            style={{ background: "color-mix(in srgb, var(--color-danger) 16%, transparent)" }}
+          >
+            exit {exit}
+          </span>
+        )}
+        {event.toolName && <span className="font-mono text-[9px] text-ink-3">{event.toolName}</span>}
+      </span>
     </button>
   );
 }
@@ -456,7 +476,9 @@ function EventInspector({
   // data (we don't reconstruct real file diffs from hook events).
   const isDemo = useAppStore((s) => s.source) === "demo";
   const diff = isDemo && event.links?.files?.[0] ? DEMO_DIFFS[event.links.files[0]] : undefined;
-  const command = event.risk?.[0]?.redactedEvidence;
+  // WHAT: the full, untruncated redacted command (the stored title is cut at 90 chars).
+  const desc = describeEvent(event);
+  const fullCommand = eventCommand(event);
   return (
     <div className="flex flex-col">
       <div className="border-b border-line px-4 py-3">
@@ -464,12 +486,29 @@ function EventInspector({
           <Pill color={AGENT_COLOR_VAR[event.agent]}>{event.type.replace(/_/g, " ")}</Pill>
           {event.toolName && <Pill>{event.toolName}</Pill>}
         </div>
-        <h3 className="mt-2 text-[14px] font-semibold leading-snug text-ink">{event.title}</h3>
+        <h3 className="mt-2 whitespace-pre-wrap break-words text-[14px] font-semibold leading-snug text-ink">
+          {desc.what}
+        </h3>
         {event.summary && <p className="mt-1 text-[12px] leading-relaxed text-ink-2">{event.summary}</p>}
       </div>
 
+      {/* WHAT — the full command, never truncated */}
+      {fullCommand && (
+        <div className="border-b border-line px-4 py-3">
+          <div className="mb-1.5 text-[11px] font-medium text-ink-3">{t("Command (redacted, not executed)")}</div>
+          <CommandBlock command={fullCommand} wrap />
+        </div>
+      )}
+
       <div className="border-b border-line px-4 py-2">
         <KeyValue label={t("Timestamp")} mono>{formatClock(event.timestamp)}</KeyValue>
+        {/* WHERE */}
+        {(event.repoPath ?? event.cwd) && (
+          <KeyValue label={t("Repo")} mono>{event.repoPath ?? event.cwd}</KeyValue>
+        )}
+        {desc.file && (
+          <KeyValue label={t("File")} mono>{desc.file}</KeyValue>
+        )}
         {event.metrics?.durationMs != null && (
           <KeyValue label={t("Duration")} mono>{formatDuration(event.metrics.durationMs)}</KeyValue>
         )}
@@ -483,13 +522,6 @@ function EventInspector({
           <KeyValue label={t("Branch")} mono>{event.links.branch}</KeyValue>
         )}
       </div>
-
-      {command && (
-        <div className="border-b border-line px-4 py-3">
-          <div className="mb-1.5 text-[11px] font-medium text-ink-3">{t("Command (redacted, not executed)")}</div>
-          <CommandBlock command={command} danger={(event.risk?.[0]?.severity ?? "low") !== "low"} />
-        </div>
-      )}
 
       {diff && (
         <div className="border-b border-line px-4 py-3">

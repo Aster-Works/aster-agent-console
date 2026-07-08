@@ -17,12 +17,15 @@ import { serve } from "./commands/serve";
 import { serviceInstall, serviceStatus, serviceUninstall } from "./commands/service";
 import { hooksStatusCmd, hooksUninstallCmd, installHooksCmd } from "./commands/hooks";
 
+// Stamped by tsup from package.json; undefined when run from source via tsx.
+declare const __AAC_VERSION__: string;
+
 const program = new Command();
 
 program
   .name("aster-agent")
   .description("Local-first AI coding agent safety, work audit, and outcome console")
-  .version("0.1.0");
+  .version(typeof __AAC_VERSION__ === "string" ? __AAC_VERSION__ : "dev");
 
 const port = (v: string) => Number.parseInt(v, 10);
 

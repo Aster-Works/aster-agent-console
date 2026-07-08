@@ -5,6 +5,7 @@ import "./index.css";
 import { AppShell } from "./app/AppShell";
 import { Overview } from "./routes/Overview";
 import { SessionReplay } from "./routes/SessionReplay";
+import { Activity } from "./routes/Activity";
 import { RepoActivity } from "./routes/RepoActivity";
 import { RiskRadar } from "./routes/RiskRadar";
 import { Agents } from "./routes/Agents";
@@ -22,6 +23,7 @@ const router = createHashRouter([
       { path: "overview", element: <Overview /> },
       { path: "session-replay", element: <SessionReplay /> },
       { path: "session-replay/:sessionId", element: <SessionReplay /> },
+      { path: "activity", element: <Activity /> },
       { path: "repo-activity", element: <RepoActivity /> },
       { path: "risk-radar", element: <RiskRadar /> },
       { path: "agents", element: <Agents /> },

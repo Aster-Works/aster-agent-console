@@ -4,6 +4,57 @@ All notable changes to Aster Agent Console are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.17] — 2026-07-08
+
+### Added
+
+- **Activity Log** — a new page that answers "when, where, and what did the agent
+  do?" for every recorded action, in one searchable audit table: timestamp, agent,
+  repository + file, the actual command, and how it ended. Clicking a row opens that
+  session's replay.
+- **Search now reaches into event content.** The search box previously matched only
+  session metadata (title, repo, model). It now also matches command text, file
+  names, tool names and repositories across every event.
+- **An "All time" date range.** The top bar offered only Today / 7d / 30d, so events
+  older than 30 days were unreachable from the UI even though they were still on
+  disk and inside the retention window.
+
+### Fixed
+
+- **The dashboard showed `Bash complete` instead of what the agent actually ran.**
+  A finished tool call is stored with the title `"<tool> complete"` — the real,
+  redacted command lives in the event input, and nothing surfaced it. A single
+  `describeEvent()` helper now derives when/where/what, so the timeline, the
+  activity log and search always agree on what an event *is*.
+- **The event inspector truncated long commands.** It now renders the full,
+  untruncated command, wrapped rather than clipped, with no horizontal scroll.
+  The inspector also shows the repository and the touched file.
+- **The demo dataset was pinned to a hardcoded date**, so once that day aged out
+  of the default 7-day range, a fresh `npx @asterworks/agent-console dashboard`
+  rendered every screen empty. The demo is now anchored to today.
+- **Search missed matches that sat after a newline.** The index was built from the
+  single line shown in the table, so a `git commit` on line 5 of a heredoc was
+  invisible to search while remaining visible in the inspector. Search now indexes
+  the whole command (measured on a real 25,966-event database: `git commit` went
+  from 166 to 210 matching events).
+- **Tools that carry no shell command read as `WebFetch complete`.** Events now fall
+  back to the URL they fetched, the query they searched, or the expression they
+  evaluated — 12.7% → 8.1% of real events show a bare `<tool> complete`, and every
+  one that remains is a *completion* row, rendered as such.
+- **A session that started before the selected window disappeared entirely**, taking
+  every event with it, even if it ran for hours inside the window. The window now
+  tests when a session *ended*.
+- **`npm publish` packed whatever happened to be on disk.** `dist/` and `dist-cli/`
+  are gitignored and there was no `prepublishOnly`, so publishing from a clean
+  clone could ship a `bin` entry pointing at a file that wasn't in the tarball.
+
+### Changed
+
+- Session Replay pills and Activity Log rows now show the real command. Because a
+  tool call is recorded twice (the intent, then the completion), completions are
+  marked with a check, dimmed, and annotated with their duration — **no event is
+  hidden or merged away**; this is an audit tool.
+
 ## [0.1.16] — 2026-07-04
 
 ### Changed

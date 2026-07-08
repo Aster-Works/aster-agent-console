@@ -11,11 +11,14 @@ export function CommandBlock({
   danger,
   label,
   className,
+  wrap,
 }: {
   command: string;
   danger?: boolean;
   label?: string;
   className?: string;
+  /** Wrap long commands instead of scrolling sideways (narrow panels). */
+  wrap?: boolean;
 }) {
   return (
     <div
@@ -36,14 +39,15 @@ export function CommandBlock({
           {label}
         </div>
       )}
-      <div className="flex items-start gap-1.5 overflow-x-auto px-2.5 py-2">
+      <div className={cn("flex items-start gap-1.5 px-2.5 py-2", !wrap && "overflow-x-auto")}>
         <ChevronRight
           size={13}
           className={cn("mt-0.5 shrink-0", danger ? "text-danger" : "text-ink-3")}
         />
         <code
           className={cn(
-            "whitespace-pre font-mono text-[12px] leading-relaxed",
+            "font-mono text-[12px] leading-relaxed",
+            wrap ? "min-w-0 whitespace-pre-wrap break-all" : "whitespace-pre",
             danger ? "text-[#fda4af]" : "text-ink-2"
           )}
         >

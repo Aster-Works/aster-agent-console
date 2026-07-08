@@ -24,10 +24,16 @@ import type {
 } from "@core/views";
 import { seeded } from "@core/aggregate";
 
-export const DEMO_TODAY = "2026-07-01";
+/**
+ * Anchored to *today*, not to a hardcoded date. A fixed date is a time bomb:
+ * once it drifts past the default 7-day range, every screen of a fresh
+ * `npx @asterworks/agent-console dashboard` renders empty. Times of day stay
+ * fixed, so the demo is still deterministic within any given day.
+ */
+export const DEMO_TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
 const TZ = "+09:00";
 
-/** Fixed ISO timestamp helper (JST) — keeps demo deterministic. */
+/** Fixed ISO timestamp helper (JST) — keeps demo deterministic within a day. */
 function at(day: string, time: string): string {
   return `${day}T${time}${TZ}`;
 }
@@ -447,6 +453,9 @@ const sessCc01Events: NormalizedAgentEvent[] = [
     title: "Read complete",
     summary: "212 lines · no writes",
     metrics: { durationMs: 410 },
+    // A real post_tool_use carries the tool input; without it the row would read
+    // "Read complete" instead of naming the file that was read.
+    links: { files: ["src/server/events.ts"] },
   }),
   ev("evt_cc_05", "claude-code", "pre_tool_use", "sess_cc_01", "10:17:02", {
     toolName: "Write",

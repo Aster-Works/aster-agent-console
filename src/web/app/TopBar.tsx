@@ -63,6 +63,7 @@ export function TopBar() {
             { value: "today", label: t("Today") },
             { value: "7d", label: t("Last 7 days") },
             { value: "30d", label: t("Last 30 days") },
+            { value: "all", label: t("All time") },
           ]}
         />
         <Select

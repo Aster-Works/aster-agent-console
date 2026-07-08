@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   History,
+  ScrollText,
   FolderGit2,
   Radar,
   Bot,
@@ -19,6 +20,7 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { to: "/overview", label: "Overview", icon: LayoutDashboard, match: "overview" },
   { to: "/session-replay", label: "Session Replay", icon: History, match: "session-replay" },
+  { to: "/activity", label: "Activity Log", icon: ScrollText, match: "activity" },
   { to: "/repo-activity", label: "Repo Activity", icon: FolderGit2, match: "repo-activity" },
   { to: "/risk-radar", label: "Risk Radar", icon: Radar, match: "risk-radar" },
   { to: "/agents", label: "Agents", icon: Bot, match: "agents" },
@@ -34,6 +36,10 @@ export const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = 
   "session-replay": {
     title: "Session Replay",
     subtitle: "Replay a session as an explainable sequence of events",
+  },
+  activity: {
+    title: "Activity Log",
+    subtitle: "When, where, and what every agent did — searchable",
   },
   "repo-activity": {
     title: "Repo Activity",

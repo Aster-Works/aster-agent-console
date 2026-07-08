@@ -12,6 +12,22 @@ export type Locale = "en" | "ja";
 
 // English source → Japanese. Keep keys identical to the JSX literal.
 export const JA: Record<string, string> = {
+  // ── activity log (when / where / what + search) ─────────────────────────
+  "Activity Log": "操作ログ",
+  "When, where, and what every agent did — searchable": "エージェントが いつ・どこで・何をしたか（検索可）",
+  "Agent Activity": "エージェントの操作ログ",
+  "{total} actions in range · newest first": "期間内の操作 {total}件 · 新しい順",
+  "{n} of {total} actions match “{q}”": "「{q}」に一致: {total}件中 {n}件",
+  "No actions match your search": "検索に一致する操作はありません",
+  "No actions recorded yet": "記録された操作はまだありません",
+  "Try a command, file name, tool, or repository.": "コマンド・ファイル名・ツール名・リポジトリで検索できます。",
+  "Showing the newest {n} of {total} — narrow with search or the filters above.":
+    "{total}件のうち新しい{n}件を表示中 — 検索や上部のフィルタで絞り込めます。",
+  "When": "いつ",
+  "Where": "どこで",
+  "What": "何を",
+  "Type": "種別",
+  "File": "ファイル",
   "none detected": "検出なし",
   "{n} {s}": "{s} {n}件",
   "no tools yet": "ツールなし",
@@ -290,6 +306,7 @@ export const JA: Record<string, string> = {
   "Today": "今日",
   "Last 7 days": "直近7日",
   "Last 30 days": "直近30日",
+  "All time": "すべての期間",
   "Connecting…": "接続中…",
   "Live": "ライブ",
   "Live (no data)": "ライブ（データなし）",
