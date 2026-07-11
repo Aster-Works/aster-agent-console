@@ -1,15 +1,15 @@
 /**
- * Filesystem layer for the MCP config scan (Phase 6). Discovers known MCP
- * config locations, reads and parses them (read-only, never executes), and runs
- * the pure scanner in `src/core/mcp.ts`. Results are cached briefly so repeated
+ * Filesystem layer for the MCP config scan. Discovers known MCP config
+ * locations, reads and parses them (read-only, never executes), and runs the
+ * pure scanner in `src/core/mcp.ts`. Results are cached briefly so repeated
  * dashboard API calls don't re-read disk on every request.
  *
- * Discovery paths mirror AsterGuard's `src/core/discovery.ts` (JSON configs
- * only). Codex uses TOML (`~/.codex/config.toml`) which AsterGuard also does not
- * parse — that is deferred, not silently dropped (see `note` in the summary is
- * out of scope; documented in HANDOFF.md).
+ * JSON discovery paths mirror AsterGuard's `src/core/discovery.ts`; Codex's
+ * `~/.codex/config.toml` (`[mcp_servers.<name>]`) is parsed with smol-toml —
+ * one canonical RawMcpServer model regardless of source format.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { parse as parseToml } from "smol-toml";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AgentName, RiskFinding } from "../core/types";
@@ -32,9 +32,10 @@ import { DEFAULT_CONFIG_DIR } from "../db/index";
 
 type Discovery = { rel: string; agent: AgentName; scope: "project" | "user" };
 
-// JSON MCP config locations. `agent` is best-effort attribution for the map.
+// MCP config locations (JSON + Codex TOML). `agent` is best-effort attribution.
 const PROJECT_CONFIGS: Discovery[] = [
   { rel: ".mcp.json", agent: "claude-code", scope: "project" },
+  { rel: ".codex/config.toml", agent: "codex", scope: "project" },
   { rel: ".cursor/mcp.json", agent: "cursor", scope: "project" },
   { rel: ".vscode/mcp.json", agent: "unknown", scope: "project" },
   { rel: ".claude/settings.json", agent: "claude-code", scope: "project" },
@@ -43,6 +44,7 @@ const PROJECT_CONFIGS: Discovery[] = [
 
 const USER_CONFIGS: Discovery[] = [
   { rel: ".claude.json", agent: "claude-code", scope: "user" },
+  { rel: ".codex/config.toml", agent: "codex", scope: "user" },
   { rel: ".claude/settings.json", agent: "claude-code", scope: "user" },
   { rel: ".cursor/mcp.json", agent: "cursor", scope: "user" },
   { rel: ".codeium/windsurf/mcp_config.json", agent: "unknown", scope: "user" },
@@ -123,6 +125,8 @@ export function loadPolicy(configDir = DEFAULT_CONFIG_DIR): ConsolePolicy {
 
 export type McpEnvironmentScan = {
   servers: McpServer[];
+  /** The raw scanned definitions (name/command/args/env/url + source file) — inventory input. */
+  inputs: ScannedServerInput[];
   findings: RiskFinding[];
   summary: McpScanSummary;
   policy: ConsolePolicy;
@@ -146,9 +150,12 @@ function runScan(opts: ScanOptions): McpEnvironmentScan {
   for (const { path, agent } of files) {
     let json: unknown;
     try {
-      json = JSON.parse(readFileSync(path, "utf8"));
+      const body = readFileSync(path, "utf8");
+      // Codex configs are TOML; everything else is JSON. Parsed with a real
+      // TOML parser (smol-toml) — never regex over config text.
+      json = path.endsWith(".toml") ? parseToml(body) : JSON.parse(body);
     } catch {
-      continue; // unreadable / invalid JSON — skip, never throw
+      continue; // unreadable / invalid JSON or TOML — skip, never throw
     }
     const servers = extractServers(json);
     if (servers.length === 0) continue;
@@ -162,6 +169,7 @@ function runScan(opts: ScanOptions): McpEnvironmentScan {
 
   return {
     servers: scan.servers,
+    inputs,
     findings,
     policy,
     summary: {

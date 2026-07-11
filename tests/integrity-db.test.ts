@@ -113,7 +113,7 @@ describe("hash chain through the real DB", () => {
     old.close();
 
     const re = openDb(oldPath);
-    expect(re.raw.pragma("user_version", { simple: true })).toBe(2);
+    expect(re.raw.pragma("user_version", { simple: true })).toBe(3);
     expect(re.getEvents("s9")).toHaveLength(1);
     expect(verifyChain(re.integrityRows("s9")).status).toBe("legacy-unverified");
     re.close();

@@ -16,7 +16,14 @@ import { accessSync, constants, existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { AgentName, CollectorStatus } from "../core/types";
-import { openDb, type AgentConsoleDb, DEFAULT_DB_PATH, DEFAULT_CONFIG_DIR } from "../db/index";
+import {
+  openDb,
+  FINDING_STATUSES,
+  type AgentConsoleDb,
+  type FindingStatus,
+  DEFAULT_DB_PATH,
+  DEFAULT_CONFIG_DIR,
+} from "../db/index";
 import { createCollector, type LiveMessage } from "./collector";
 import { createCodexImporter } from "./codex-import";
 import { assembleDataset } from "./dataset";
@@ -24,7 +31,8 @@ import { loadConfig, saveConfig, PRICING_FAMILIES } from "./config";
 import { applyPricingOverrides, getPricing } from "./usage";
 import { hooksStatus } from "../cli/hooks/installer";
 import { riskRuleCatalog } from "../core/risk";
-import { mcpRuleCatalog } from "../core/mcp";
+import { fingerprintServer, mcpRuleCatalog } from "../core/mcp";
+import { scanMcpEnvironment } from "./mcp-scan";
 import { createEnricher, limitConcurrency } from "./enrich";
 import { execFileGitRunner, type GitRunner } from "./git";
 
@@ -172,22 +180,44 @@ export function createServer(opts: ServerOptions = {}) {
   app.get("/api/sessions/:id/events", (c) => c.json(db.getEvents(c.req.param("id"))));
   app.get("/api/risk-findings", (c) => c.json(db.getRisk()));
 
-  // Resolve / reopen a finding. Findings are never deleted — the honest record
-  // is kept. "resolved" drops it from the active radar and marks it handled;
-  // "open" reopens it. (Deleting an already-redacted audit record would not
-  // remove the real secret, which lives in the agent's own logs — so we don't.)
+  // Finding lifecycle. Findings are never deleted — the honest record is
+  // kept; a status only changes what the active radar surfaces, and every
+  // transition is appended to finding_status_history. (Deleting an
+  // already-redacted audit record would not remove the real secret, which
+  // lives in the agent's own logs — so we don't.)
   app.post("/api/risk-findings/resolve", async (c) => {
-    let body: { id?: string; status?: "open" | "acknowledged" | "resolved" };
+    let body: { id?: string; status?: string; note?: string };
     try {
       body = (await c.req.json()) as typeof body;
     } catch {
       return c.json({ ok: false, error: "invalid JSON" }, 400);
     }
     if (!body.id) return c.json({ ok: false, error: "missing id" }, 400);
-    const sessionId = db.setRiskStatus(body.id, body.status ?? "resolved");
+    const status = (body.status ?? "resolved") as FindingStatus;
+    if (!FINDING_STATUSES.includes(status)) {
+      return c.json({ ok: false, error: `invalid status (one of: ${FINDING_STATUSES.join(", ")})` }, 400);
+    }
+    const sessionId = db.setRiskStatus(body.id, status, body.note);
     if (!sessionId) return c.json({ ok: false, error: "not found" }, 404);
     db.recomputeSession(sessionId);
     return c.json({ ok: true });
+  });
+  app.get("/api/risk-findings/:id/history", (c) => c.json(db.getFindingHistory(c.req.param("id"))));
+
+  // MCP inventory: reconcile the current config scan against what we remember
+  // and report new / removed / changed servers. Recording on read is
+  // deliberate — the inventory IS our observation log of the environment.
+  app.get("/api/mcp-inventory", (c) => {
+    const scan = scanMcpEnvironment({ configDir: dirname(dbFile) });
+    const diff = db.recordMcpInventory(
+      scan.inputs.map((i) => ({
+        name: i.server.name,
+        sourceFile: i.sourceFile,
+        agent: i.agent,
+        ...fingerprintServer(i.server),
+      }))
+    );
+    return c.json({ inventory: db.getMcpInventory(), diff });
   });
   app.get("/api/repo-activity", (c) => {
     const ds = assembleDataset(db, status());

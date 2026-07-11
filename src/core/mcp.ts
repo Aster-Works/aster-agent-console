@@ -12,10 +12,12 @@
  *
  * Server definitions are only ever *inspected as text* — never executed.
  */
+import { createHash } from "node:crypto";
 import type { AgentName, RiskFinding, RiskSeverity } from "./types";
 import type { McpPermission, McpServer } from "./views";
 import { fingerprint, hasSecret, redactString } from "./redaction";
 import { hostAllowed } from "./policy";
+import { canonicalize } from "./integrity/index";
 
 /** A single MCP server definition as it appears in a config file. */
 export type RawMcpServer = {
@@ -64,7 +66,9 @@ function isStringRecord(v: unknown): v is Record<string, string> {
 export function extractServers(json: unknown): RawMcpServer[] {
   if (!json || typeof json !== "object") return [];
   const obj = json as Record<string, unknown>;
-  const block = (obj.mcpServers ?? obj.servers) as unknown;
+  // `mcpServers`: Claude/Cursor/Windsurf/Cline/Gemini · `servers`: VS Code ·
+  // `mcp_servers`: Codex config.toml ([mcp_servers.<name>], parsed upstream).
+  const block = (obj.mcpServers ?? obj.servers ?? obj.mcp_servers) as unknown;
   if (!block || typeof block !== "object" || Array.isArray(block)) return [];
 
   const out: RawMcpServer[] = [];
@@ -87,6 +91,30 @@ export function extractServers(json: unknown): RawMcpServer[] {
     });
   }
   return out;
+}
+
+// ---- inventory fingerprint ---------------------------------------------------
+
+/**
+ * Stable fingerprint of a server DEFINITION for change detection. Covers what
+ * the server IS (command/args/url/type/headers keys) and which env vars it
+ * receives — by NAME only. Values are deliberately excluded so the inventory
+ * never stores a secret; a value-only rotation does not read as a config
+ * change, which is the desired behavior.
+ */
+export function fingerprintServer(s: RawMcpServer): {
+  fingerprint: string;
+  definition: { command?: string; args?: string[]; url?: string; type?: string; envNames?: string[] };
+} {
+  const definition = {
+    command: s.command,
+    args: s.args,
+    url: s.url,
+    type: s.type,
+    envNames: s.env ? Object.keys(s.env).sort() : undefined,
+  };
+  const fingerprint = createHash("sha256").update(canonicalize(definition)).digest("hex").slice(0, 32);
+  return { fingerprint, definition };
 }
 
 // ---- rules -----------------------------------------------------------------

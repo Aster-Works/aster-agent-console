@@ -44,7 +44,7 @@ The same results power the **Risk Radar** screen in `aster-audit dashboard`, inc
 | `~/.gemini/settings.json` | Gemini CLI |
 | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` | Cline (unknown) |
 
-**Codex is not scanned.** Codex configures MCP in TOML (`~/.codex/config.toml`), and the scanner is JSON-only. TOML parsing is explicitly deferred — AsterGuard does not parse it either. Codex config is skipped, not silently mis-read.
+**Codex IS scanned** (since 0.2.0). `~/.codex/config.toml`'s `[mcp_servers.<name>]` tables are parsed with a maintained TOML parser (smol-toml) and normalized into the same canonical server model as JSON configs, so every rule applies uniformly.
 
 ## Rules (AAC-MCP-001..009)
 

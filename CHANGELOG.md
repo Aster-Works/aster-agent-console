@@ -27,6 +27,22 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ### Added
 
+- **Codex TOML MCP scanning.** `~/.codex/config.toml`'s `[mcp_servers.<name>]`
+  tables are now scanned — parsed with a maintained TOML parser (smol-toml,
+  the one new runtime dependency of this release), normalized into the same
+  canonical server model as JSON configs, and run through the same rules.
+- **MCP inventory with change detection.** The collector remembers every
+  scanned MCP server (name, source file, attributed agent, definition
+  fingerprint, first/last seen — env variable NAMES only, never values) and
+  reports what changed between scans: new, removed, and changed servers.
+  A value-only secret rotation deliberately does not count as a change.
+  `GET /api/mcp-inventory` serves the inventory + diff.
+- **Finding lifecycle with an auditable history.** Findings now support
+  `accepted-risk` and `false-positive` in addition to open/acknowledged/
+  resolved, and every status transition (with an optional note) is APPENDED to
+  a history table — triage decisions are part of the audit record. Findings
+  are still never deleted. `GET /api/risk-findings/:id/history` serves the
+  trail.
 - **Audit-trail integrity (hash chain).** Every newly ingested event is stored
   with a SHA-256 hash linking it to the previous event in its session, making
   after-the-fact modification of the stored record **detectable** (this is

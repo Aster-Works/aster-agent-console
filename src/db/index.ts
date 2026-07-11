@@ -133,6 +133,36 @@ function now(): string {
   return new Date().toISOString();
 }
 
+/** Finding lifecycle states (v3): the last two mark deliberate human triage. */
+export type FindingStatus = "open" | "acknowledged" | "resolved" | "accepted-risk" | "false-positive";
+export const FINDING_STATUSES: readonly FindingStatus[] = [
+  "open",
+  "acknowledged",
+  "resolved",
+  "accepted-risk",
+  "false-positive",
+];
+
+export type FindingTransition = { fromStatus: string | null; toStatus: string; note: string | null; at: string };
+
+/** One MCP server as remembered by the inventory. Env NAMES only, never values. */
+export type McpInventoryRow = {
+  name: string;
+  sourceFile: string;
+  agent: string | null;
+  fingerprint: string;
+  definition: { command?: string; args?: string[]; url?: string; type?: string; envNames?: string[] };
+  firstSeen: string;
+  lastSeen: string;
+};
+
+export type McpInventoryDiff = {
+  added: McpInventoryRow[];
+  removed: McpInventoryRow[];
+  changed: Array<{ before: McpInventoryRow; after: McpInventoryRow }>;
+  unchanged: number;
+};
+
 export type AgentConsoleDb = ReturnType<typeof openDb>;
 
 export function openDb(dbPath: string = DEFAULT_DB_PATH) {
@@ -170,6 +200,31 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
     if (!eventCols.has("chain_seq")) raw.exec(`alter table events add column chain_seq integer`);
     raw.exec(`create index if not exists idx_events_chain on events(session_id, chain_seq)`);
     raw.pragma("user_version = 2");
+  }
+  if ((raw.pragma("user_version", { simple: true }) as number) < 3) {
+    // v3a: append-only status history for findings — a lifecycle you can audit.
+    raw.exec(`create table if not exists finding_status_history (
+      seq integer primary key autoincrement,
+      finding_id text not null,
+      from_status text,
+      to_status text not null,
+      note text,
+      at text not null
+    )`);
+    raw.exec(`create index if not exists idx_fsh_finding on finding_status_history(finding_id)`);
+    // v3b: MCP inventory snapshots — fingerprints for change detection.
+    // Stores env-var NAMES only, never values.
+    raw.exec(`create table if not exists mcp_inventory (
+      name text not null,
+      source_file text not null,
+      agent text,
+      fingerprint text not null,
+      definition_json text not null,
+      first_seen text not null,
+      last_seen text not null,
+      primary key (name, source_file)
+    )`);
+    raw.pragma("user_version = 3");
   }
 
   // ---- sessions ----------------------------------------------------------
@@ -418,16 +473,109 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
   const resolveRiskStmt = raw.prepare(
     `update risk_findings set status = @status where id = @id`
   );
-  /** Mark a finding resolved/acknowledged, or reopen it. Returns its session id.
-   *  Findings are never deleted — the honest audit record is kept; "resolved"
-   *  just drops it from the active radar and marks it as handled. */
-  function setRiskStatus(id: string, status: "open" | "acknowledged" | "resolved"): string | undefined {
-    const row = raw.prepare(`select session_id from risk_findings where id = ?`).get(id) as
-      | { session_id: string }
+  /** Mark a finding's lifecycle state. Returns its session id.
+   *  Findings are never deleted — the honest audit record is kept; a status
+   *  only changes what the active radar surfaces. Every transition is
+   *  APPENDED to finding_status_history, so resolutions are auditable too. */
+  function setRiskStatus(id: string, status: FindingStatus, note?: string): string | undefined {
+    const row = raw.prepare(`select session_id, status from risk_findings where id = ?`).get(id) as
+      | { session_id: string; status: string }
       | undefined;
     if (!row) return undefined;
     resolveRiskStmt.run({ id, status });
+    raw
+      .prepare(
+        `insert into finding_status_history (finding_id, from_status, to_status, note, at)
+         values (@id, @from_status, @to_status, @note, @at)`
+      )
+      .run({ id, from_status: row.status, to_status: status, note: note ?? null, at: now() });
     return row.session_id;
+  }
+
+  /** Append-only transition log for one finding, oldest first. */
+  function getFindingHistory(id: string): FindingTransition[] {
+    return raw
+      .prepare(
+        `select from_status as fromStatus, to_status as toStatus, note, at
+           from finding_status_history where finding_id = ? order by seq asc`
+      )
+      .all(id) as FindingTransition[];
+  }
+
+  // ---- MCP inventory -------------------------------------------------------
+
+  /**
+   * Reconcile the current scan against the remembered inventory and return
+   * what changed. Upserts by (name, sourceFile); a changed fingerprint
+   * refreshes the stored definition. Servers that vanished stay in the table
+   * (they are history) but are reported as `removed` when absent from the
+   * current scan. Definitions carry env-var NAMES only — never values.
+   */
+  function recordMcpInventory(
+    current: Array<{
+      name: string;
+      sourceFile: string;
+      agent?: string;
+      fingerprint: string;
+      definition: McpInventoryRow["definition"];
+    }>
+  ): McpInventoryDiff {
+    const ts = now();
+    const stored = getMcpInventory();
+    const key = (r: { name: string; sourceFile: string }) => `${r.name}\u0000${r.sourceFile}`;
+    const storedBy = new Map(stored.map((r) => [key(r), r]));
+    const currentKeys = new Set(current.map(key));
+
+    const upsert = raw.prepare(`
+      insert into mcp_inventory (name, source_file, agent, fingerprint, definition_json, first_seen, last_seen)
+      values (@name, @source_file, @agent, @fingerprint, @definition_json, @ts, @ts)
+      on conflict(name, source_file) do update set
+        agent = excluded.agent,
+        fingerprint = excluded.fingerprint,
+        definition_json = excluded.definition_json,
+        last_seen = excluded.last_seen
+    `);
+
+    const diff: McpInventoryDiff = { added: [], removed: [], changed: [], unchanged: 0 };
+    for (const c of current) {
+      const prev = storedBy.get(key(c));
+      upsert.run({
+        name: c.name,
+        source_file: c.sourceFile,
+        agent: c.agent ?? null,
+        fingerprint: c.fingerprint,
+        definition_json: JSON.stringify(c.definition),
+        ts,
+      });
+      const rowNow: McpInventoryRow = {
+        name: c.name,
+        sourceFile: c.sourceFile,
+        agent: c.agent ?? null,
+        fingerprint: c.fingerprint,
+        definition: c.definition,
+        firstSeen: prev?.firstSeen ?? ts,
+        lastSeen: ts,
+      };
+      if (!prev) diff.added.push(rowNow);
+      else if (prev.fingerprint !== c.fingerprint) diff.changed.push({ before: prev, after: rowNow });
+      else diff.unchanged++;
+    }
+    for (const r of stored) if (!currentKeys.has(key(r))) diff.removed.push(r);
+    return diff;
+  }
+
+  function getMcpInventory(): McpInventoryRow[] {
+    return (
+      raw.prepare(`select * from mcp_inventory order by name asc`).all() as Record<string, unknown>[]
+    ).map((r) => ({
+      name: String(r.name),
+      sourceFile: String(r.source_file),
+      agent: (r.agent as string) ?? null,
+      fingerprint: String(r.fingerprint),
+      definition: JSON.parse(String(r.definition_json)),
+      firstSeen: String(r.first_seen),
+      lastSeen: String(r.last_seen),
+    }));
   }
 
   // ---- aggregates --------------------------------------------------------
@@ -653,6 +801,9 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
     enrichEvent,
     deleteSupersededFileChanges,
     setRiskStatus,
+    getFindingHistory,
+    recordMcpInventory,
+    getMcpInventory,
     recomputeSession,
     getSessions,
     getSession,

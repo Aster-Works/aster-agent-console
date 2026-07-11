@@ -120,8 +120,9 @@ prunes older data automatically, so the local database stays bounded.
 ### MCP security scan
 
 `aster-audit scan` discovers your MCP config files (Claude `~/.claude.json` &
-`.mcp.json`, Cursor, VS Code, Windsurf, Cline, Gemini — **JSON only; Codex's TOML
-config is not scanned**) and inspects them read-only — nothing is executed. The
+`.mcp.json`, Cursor, VS Code, Windsurf, Cline, Gemini — **and Codex's
+`~/.codex/config.toml`**, parsed with a real TOML parser) and inspects them
+read-only — nothing is executed. The
 `AAC-MCP-*` rules mirror [AsterGuard](https://github.com/Aster-Works/aster-guard)'s
 `AG-*` detections (arbitrary exec, pipe-to-shell installs, runtime env injection,
 hardcoded secrets, unverified remote origins, package typosquatting, sensitive-file

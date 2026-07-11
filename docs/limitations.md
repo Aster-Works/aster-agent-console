@@ -4,7 +4,7 @@ Aster Agent Audit (`@asterworks/agent-audit`) is a **beta**, local-first safety 
 
 None of the limitations below are bugs — they are the current, deliberate boundaries of the tool.
 
-## MCP scan is JSON-only — Codex TOML is not scanned
+## MCP scan covers JSON configs and Codex TOML
 
 `aster-audit scan` discovers and reads **JSON** MCP config files only:
 
@@ -15,7 +15,7 @@ aster-audit scan ./my-repo  # scans a specific project directory
 
 Discovered sources: Claude (`~/.claude.json`, project `.mcp.json`), Cursor (`~/.cursor/mcp.json`, `.cursor/mcp.json`), VS Code (`.vscode/mcp.json`, `servers` key), Windsurf (`~/.codeium/windsurf/mcp_config.json`), Cline (VS Code `globalStorage` `cline_mcp_settings.json`), and Gemini (`~/.gemini/settings.json`).
 
-**Codex uses TOML (`~/.codex/config.toml`), which is NOT parsed.** MCP servers defined there are not scanned. This is deferred, not silently dropped — AsterGuard does not parse it either. If your MCP servers live only in `config.toml`, the scan will not see them.
+**Codex's `~/.codex/config.toml` IS scanned** (since 0.2.0, parsed with a maintained TOML parser — never regex). Servers defined under `[mcp_servers.<name>]` go through the same rules as JSON-defined ones. Other agents' TOML formats, if any, are not covered.
 
 ## The MCP scan is static and heuristic — not a sandbox
 
