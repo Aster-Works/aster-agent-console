@@ -5,7 +5,7 @@ documented here. The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — Unreleased
+## [0.2.0] — 2026-07-11
 
 ### Renamed
 
@@ -49,6 +49,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   reports what changed between scans: new, removed, and changed servers.
   A value-only secret rotation deliberately does not count as a change.
   `GET /api/mcp-inventory` serves the inventory + diff.
+- **Risk Radar: triage actions and MCP inventory panel.** Findings can be
+  marked Accept risk / False positive (with an optional note) alongside
+  Resolve/Reopen; closed findings show a struck-through status badge and drop
+  out of the active score. A new MCP Inventory panel lists every known server
+  with its source file, command/URL, env variable names, definition
+  fingerprint, and a new/changed/removed badge per scan.
 - **Finding lifecycle with an auditable history.** Findings now support
   `accepted-risk` and `false-positive` in addition to open/acknowledged/
   resolved, and every status transition (with an optional note) is APPENDED to
@@ -102,6 +108,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ### Fixed
 
+- **CSV export neutralizes spreadsheet formula injection** — a finding title
+  or evidence starting with `=`, `+`, `-`, or `@` no longer executes as a
+  formula when the exported CSV is opened in Excel/Sheets.
 - **The Settings rule list showed 17 of 18 shipped rules** — the MCP rule
   catalog silently omitted the policy-aware remote-origin rule (AAC-MCP-005).
 

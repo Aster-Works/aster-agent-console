@@ -446,7 +446,12 @@ function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "ruleId,severity,category,title\n";
   const cols = ["ruleId", "severity", "category", "title", "agent", "sessionId", "timestamp"];
   const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
+    let s = v == null ? "" : String(v);
+    // Neutralize spreadsheet formula injection: a value starting with = + - @
+    // (or a tab/CR that lets one sneak through) would execute as a formula
+    // when the CSV is opened in Excel/Sheets. Findings carry attacker-influenced
+    // text (titles, evidence), so this is a real sink.
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n") + "\n";
