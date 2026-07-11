@@ -93,8 +93,22 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
     try {
       const db = openDb(dbPath);
       const c = db.counts();
+      // Chain coverage (cheap count, not a full verify — that is `verify`'s job).
+      const cov = db.raw
+        .prepare(`select count(*) as total, count(hash) as hashed from events`)
+        .get() as { total: number; hashed: number };
       db.close();
       check(true, "Database readable", `${dbPath} · ${c.sessions} sessions, ${c.events} events`);
+      if (cov.total > 0) {
+        const legacy = cov.total - cov.hashed;
+        check(
+          legacy === 0 ? true : "warn",
+          "Audit chain coverage",
+          legacy === 0
+            ? `all ${cov.hashed} events hashed (run \`${CLI_NAME} verify\` to check integrity)`
+            : `${cov.hashed} hashed, ${legacy} pre-chaining (legacy-unverified) — new events are chained automatically`
+        );
+      }
     } catch (err) {
       problems++;
       check(false, "Database readable", String((err as Error).message));

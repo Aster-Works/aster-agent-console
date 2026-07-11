@@ -27,6 +27,29 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ### Added
 
+- **Audit-trail integrity (hash chain).** Every newly ingested event is stored
+  with a SHA-256 hash linking it to the previous event in its session, making
+  after-the-fact modification of the stored record **detectable** (this is
+  tamper-evidence, not tamper-proofing — see `docs/audit-integrity.md` for the
+  exact guarantees and exclusions). Events recorded before this version report
+  as `legacy-unverified`, which is distinct from broken.
+- **`aster-audit verify [--session <id>] [--format json]`** — recompute and
+  check the chain; exit 1 on a break.
+- **`aster-audit report --type evidence [--session <id>] [--out <file>]`** —
+  a self-contained, machine-readable bundle: events with chain hashes,
+  findings, the effective policy and its sources, schema versions, and the
+  verification verdict computed at export time. Other report types are not
+  implemented yet and fail loudly instead of pretending.
+- **Policy schema v1** — `policy.json` gains optional `schemaVersion`, `name`,
+  and per-rule overrides (`rules: { "<id>": { enabled, severity } }`), with
+  field-by-field validation, a repo-local policy (`<repo>/.aster-audit/policy.json`)
+  that overrides the user-level one per field, and warnings for unknown rule
+  ids, reserved-but-unenforced fields, and unsafe settings. Old three-field
+  policies remain valid as-is; rules can be addressed by old (`AAC-*`) or new
+  (`AAA-*`) ids interchangeably.
+- **`aster-audit policy validate [dir]` / `policy test [dir]`** — validate the
+  policy chain (CI exit codes) and show the effective policy: sources,
+  suppressed rules, severity overrides, scan gate.
 - **`aster-audit migrate [--dry-run]`** — copies the legacy
   `~/.aster-agent-console` data directory to `~/.aster-agent-audit`. The
   legacy directory is never modified (aside from one marker file added on
@@ -49,8 +72,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   old launchd label — a machine that never runs `migrate` still gets a clean
   uninstall.
 
+### Fixed
+
+- **The Settings rule list showed 17 of 18 shipped rules** — the MCP rule
+  catalog silently omitted the policy-aware remote-origin rule (AAC-MCP-005).
+
 ### Changed
 
+- **`doctor` reports audit-chain coverage** (hashed vs pre-chaining events).
 - **`doctor` describes Codex collection honestly.** Codex has no installable
   hook; its activity is always read from its own session logs. `doctor`
   previously implied Codex collection worked like Claude Code's hook

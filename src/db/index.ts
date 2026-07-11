@@ -17,6 +17,7 @@ import type {
 } from "../core/types";
 import type { GitCommitNode, RiskRow } from "../core/views";
 import { DATA_DIR_NAME, DB_FILE_NAME, LEGACY_DATA_DIR_NAME } from "../core/branding";
+import { CHAIN_GENESIS, computeEventHash, type ChainedEvent } from "../core/integrity/index";
 
 /**
  * Data-directory resolution with legacy fallback (REFACTOR_PLAN.md D2):
@@ -144,12 +145,31 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
   raw.pragma("busy_timeout = 3000");
   raw.exec(SCHEMA);
 
-  // Migrate older DBs: add usage-breakdown columns if missing.
+  // ---- versioned migrations (PRAGMA user_version) --------------------------
+  // v1 = the pre-versioning baseline: idempotent SCHEMA above plus the
+  //      usage-breakdown columns probe (kept as-is so any old DB reaches v1).
+  // v2 = audit-integrity columns on events: prev_hash / hash (the chain) and
+  //      chain_seq (insert order; rowid is unusable because `insert or
+  //      replace` re-inserts rows at a new rowid). Existing rows keep NULLs
+  //      and verify as "legacy-unverified".
   const sessionCols = new Set(
     (raw.prepare(`PRAGMA table_info(sessions)`).all() as { name: string }[]).map((c) => c.name)
   );
   for (const col of ["input_tokens", "output_tokens", "cached_input_tokens", "cache_write_tokens"]) {
     if (!sessionCols.has(col)) raw.exec(`alter table sessions add column ${col} integer`);
+  }
+
+  const userVersion = raw.pragma("user_version", { simple: true }) as number;
+  if (userVersion < 2) {
+    const eventCols = new Set(
+      (raw.prepare(`PRAGMA table_info(events)`).all() as { name: string }[]).map((c) => c.name)
+    );
+    // Column probes keep this re-runnable even if user_version was lost.
+    if (!eventCols.has("prev_hash")) raw.exec(`alter table events add column prev_hash text`);
+    if (!eventCols.has("hash")) raw.exec(`alter table events add column hash text`);
+    if (!eventCols.has("chain_seq")) raw.exec(`alter table events add column chain_seq integer`);
+    raw.exec(`create index if not exists idx_events_chain on events(session_id, chain_seq)`);
+    raw.pragma("user_version = 2");
   }
 
   // ---- sessions ----------------------------------------------------------
@@ -194,14 +214,55 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
   const insertEventStmt = raw.prepare(`
     insert or replace into events
       (id, session_id, agent, source, type, turn_id, repo_path, cwd, timestamp, received_at,
-       model, tool_name, title, summary, input_json, output_json, metrics_json, links_json, raw_ref, created_at)
+       model, tool_name, title, summary, input_json, output_json, metrics_json, links_json, raw_ref, created_at,
+       prev_hash, hash, chain_seq)
     values
       (@id, @session_id, @agent, @source, @type, @turn_id, @repo_path, @cwd, @timestamp, @received_at,
-       @model, @tool_name, @title, @summary, @input_json, @output_json, @metrics_json, @links_json, @raw_ref, @created_at)
+       @model, @tool_name, @title, @summary, @input_json, @output_json, @metrics_json, @links_json, @raw_ref, @created_at,
+       @prev_hash, @hash, @chain_seq)
   `);
+  const chainStateStmt = raw.prepare(
+    `select prev_hash, chain_seq from events where id = ?`
+  );
+  const chainTipStmt = raw.prepare(
+    `select hash, chain_seq from events
+      where session_id = ? and hash is not null
+      order by chain_seq desc limit 1`
+  );
+
+  /**
+   * Hash-chain link for a new or re-ingested event.
+   *  - New event: link after the session's current tip.
+   *  - Re-ingest of a known id (`insert or replace`, e.g. Codex re-import
+   *    after a cursor loss): keep its ORIGINAL slot and predecessor, so an
+   *    identical payload re-hashes identically and the chain stays intact —
+   *    while a changed payload yields a different hash that `verify` reports
+   *    as a break at the next link. Idempotent by design, tamper-evident by
+   *    consequence.
+   */
+  function chainLink(e: NormalizedAgentEvent): { prev_hash: string; hash: string; chain_seq: number } {
+    const existing = chainStateStmt.get(e.id) as { prev_hash: string | null; chain_seq: number | null } | undefined;
+    if (existing && existing.chain_seq !== null) {
+      const prev = existing.prev_hash ?? CHAIN_GENESIS;
+      return {
+        prev_hash: prev,
+        hash: computeEventHash(e, prev === CHAIN_GENESIS ? null : prev),
+        chain_seq: existing.chain_seq,
+      };
+    }
+    const tip = chainTipStmt.get(e.sessionId) as { hash: string; chain_seq: number } | undefined;
+    const prev = tip?.hash ?? null;
+    return {
+      prev_hash: prev ?? CHAIN_GENESIS,
+      hash: computeEventHash(e, prev),
+      chain_seq: (tip?.chain_seq ?? 0) + 1,
+    };
+  }
 
   function insertEvent(e: NormalizedAgentEvent) {
+    const link = chainLink(e);
     insertEventStmt.run({
+      ...link,
       id: e.id,
       session_id: e.sessionId,
       agent: e.agent,
@@ -557,10 +618,34 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH) {
     raw.close();
   }
 
+  /**
+   * One session's events in CHAIN order for verification: legacy rows
+   * (chain_seq null → NULLS FIRST by SQLite default asc) precede hashed
+   * rows, matching verifyChain's expected stream shape.
+   */
+  function integrityRows(sessionId: string): ChainedEvent[] {
+    const rows = raw
+      .prepare(`select * from events where session_id = ? order by chain_seq asc, timestamp asc`)
+      .all(sessionId) as Record<string, unknown>[];
+    return rows.map((r) => ({
+      event: rowToEvent(r),
+      prevHash: (r.prev_hash as string) ?? null,
+      hash: (r.hash as string) ?? null,
+    }));
+  }
+
+  function sessionIds(): string[] {
+    return (raw.prepare(`select distinct session_id as id from events order by id`).all() as { id: string }[]).map(
+      (r) => r.id
+    );
+  }
+
   return {
     raw,
     upsertSession,
     insertEvent,
+    integrityRows,
+    sessionIds,
     insertRisk,
     insertFileChange,
     updateFileChangeStats,

@@ -18,6 +18,8 @@ import { doctor } from "./commands/doctor";
 import { init } from "./commands/init";
 import { migrateCmd } from "./commands/migrate";
 import { policyTestCmd, policyValidateCmd } from "./commands/policy";
+import { reportCmd } from "./commands/report";
+import { verifyCmd } from "./commands/verify";
 import { scanCmd } from "./commands/scan";
 import { serve } from "./commands/serve";
 import { serviceInstall, serviceStatus, serviceUninstall } from "./commands/service";
@@ -126,6 +128,23 @@ policy
   .description("Show the effective policy: sources, suppressed rules, severity overrides, scan gate")
   .argument("[dir]", "repository directory for the repo-local policy (defaults to the current directory)")
   .action((dir) => policyTestCmd(dir));
+
+program
+  .command("report")
+  .description("Generate a report. Implemented: --type evidence (machine-readable bundle with chain hashes)")
+  .option("--type <type>", "report type (evidence; security/activity/html arrive later and fail loudly)", "evidence")
+  .option("--session <id>", "limit to a single session")
+  .option("--out <file>", "write to a file instead of stdout")
+  .option("--db <path>", "path to the SQLite database")
+  .action((opts) => reportCmd({ type: opts.type, session: opts.session, out: opts.out, db: opts.db }));
+
+program
+  .command("verify")
+  .description("Verify the event hash chain (tamper-evidence; read-only). Exit 1 on a break")
+  .option("--session <id>", "verify a single session")
+  .option("--format <fmt>", "output format: text (default) or json")
+  .option("--db <path>", "path to the SQLite database")
+  .action((opts) => verifyCmd({ session: opts.session, format: opts.format, db: opts.db }));
 
 program
   .command("migrate")

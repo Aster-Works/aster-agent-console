@@ -59,11 +59,28 @@ describe("hash chain", () => {
 
   it("detects content tampering and names the event", () => {
     const rows = chain([ev("e1"), ev("e2"), ev("e3")]);
-    rows[1] = { ...rows[1], event: { ...rows[1].event, title: "edited after the fact" } };
+    rows[1] = {
+      ...rows[1],
+      event: { ...rows[1].event, input: { value: { command: "edited after the fact" }, redactions: [] } },
+    };
     const r = verifyChain(rows);
     expect(r.status).toBe("broken");
     expect(r.breakAt?.eventId).toBe("e2");
     expect(r.breakAt?.reason).toContain("does not match its stored hash");
+  });
+
+  it("enrichment-mutable fields (title/links/metrics/receivedAt) do NOT affect the hash — documented exemption", () => {
+    const base = ev("e1");
+    const enriched: NormalizedAgentEvent = {
+      ...base,
+      title: "rewritten by enrichment",
+      links: { files: ["/repo/a.ts"], commitSha: "abc123" },
+      metrics: { durationMs: 42 },
+      receivedAt: "2026-07-12T09:09:09Z", // re-import re-stamps this
+    };
+    expect(computeEventHash(enriched, null)).toBe(computeEventHash(base, null));
+    // …while the observed core IS covered:
+    expect(computeEventHash({ ...base, summary: "changed" }, null)).not.toBe(computeEventHash(base, null));
   });
 
   it("detects a deleted event (link mismatch)", () => {

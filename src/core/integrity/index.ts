@@ -60,10 +60,43 @@ function sortValue(v: unknown): unknown {
   return v;
 }
 
+/**
+ * The hashed projection of an event: its immutable observed core.
+ *
+ * Deliberately EXCLUDED (and therefore not tamper-evident — a documented
+ * limitation, not an oversight):
+ *  - title / links / metrics — legitimately rewritten by enrichment
+ *    (enrichEvent UPDATEs them after insert); they are derived decoration,
+ *    recomputable from the core, not part of what the agent did.
+ *  - receivedAt — when the collector saw the event, not when the agent acted;
+ *    re-importing the same rollout line after a cursor loss re-stamps it, and
+ *    an idempotent re-import must not read as tampering.
+ * Risk findings live in their own table and are not part of the event hash.
+ */
+export function integrityProjection(e: NormalizedAgentEvent): Record<string, unknown> {
+  return {
+    id: e.id,
+    sessionId: e.sessionId,
+    agent: e.agent,
+    source: e.source,
+    type: e.type,
+    turnId: e.turnId,
+    repoPath: e.repoPath,
+    cwd: e.cwd,
+    timestamp: e.timestamp,
+    model: e.model,
+    toolName: e.toolName,
+    summary: e.summary,
+    input: e.input,
+    output: e.output,
+    rawRef: e.rawRef,
+  };
+}
+
 export function computeEventHash(event: NormalizedAgentEvent, previousHash: string | null): string {
   const prev = previousHash ?? CHAIN_GENESIS;
   return createHash("sha256")
-    .update(`${INTEGRITY_SCHEMA_VERSION}:${prev}:${canonicalize(event)}`)
+    .update(`${INTEGRITY_SCHEMA_VERSION}:${prev}:${canonicalize(integrityProjection(event))}`)
     .digest("hex");
 }
 

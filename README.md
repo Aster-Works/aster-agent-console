@@ -73,6 +73,7 @@ lowercase keys) before release.
 
 - **[Quickstart](docs/quickstart.md)** — install to real data in 5 minutes.
 - **[Privacy & data handling](docs/privacy.md)** — what's stored, where, redaction, how to delete it.
+- **[Audit-trail integrity](docs/audit-integrity.md)** — what the hash chain detects, what it cannot, and the evidence bundle.
 - **[MCP security scan](docs/mcp-security.md)** — the `AAC-MCP-*` rules, posture grade, and `policy.json`.
 - **[Known limitations](docs/limitations.md)** — what this beta does and does not do.
 - **[Troubleshooting](docs/troubleshooting.md)** — common issues and fixes.
@@ -87,6 +88,10 @@ aster-audit init --dry-run       # detect only — modifies nothing
 aster-audit init --install-hooks # install collector hooks (backs up existing config first)
 aster-audit scan [dir]           # scan local MCP config for security risks (read-only)
 aster-audit doctor               # check Node, storage, collector health, hooks, MCP posture
+aster-audit verify               # verify the event hash chain (tamper-evidence; read-only)
+aster-audit report --type evidence  # export a machine-readable evidence bundle (events + hashes + findings)
+aster-audit policy validate      # validate policy.json (user + repo-local); CI exit codes
+aster-audit policy test          # show the effective policy: sources, suppressed rules, overrides
 aster-audit migrate [--dry-run]  # copy data from ~/.aster-agent-console to ~/.aster-agent-audit
 aster-audit service install      # run the collector in the background (macOS launchd; starts at login)
 aster-audit service status       # show background collector status
