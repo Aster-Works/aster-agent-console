@@ -1,17 +1,22 @@
 #!/usr/bin/env node
 /**
- * aster-agent CLI (Phase 3).
+ * aster-audit CLI.
  *
- *   aster-agent dashboard      start the local console and open the browser
- *   aster-agent doctor         check local health
- *   aster-agent init [--dry-run]   set up local files and detect agents
+ *   aster-audit dashboard      start the local console and open the browser
+ *   aster-audit doctor         check local health
+ *   aster-audit init [--dry-run]   set up local files and detect agents
+ *   aster-audit migrate [--dry-run] move data from the legacy directory
  *
+ * `aster-agent` remains a working alias during the migration period.
  * The server binds to 127.0.0.1 only and never executes incoming commands.
  */
+import { basename } from "node:path";
 import { Command } from "commander";
+import { CLI_NAME, LEGACY_CLI_NAME } from "../core/branding";
 import { dashboard } from "./commands/dashboard";
 import { doctor } from "./commands/doctor";
 import { init } from "./commands/init";
+import { migrateCmd } from "./commands/migrate";
 import { scanCmd } from "./commands/scan";
 import { serve } from "./commands/serve";
 import { serviceInstall, serviceStatus, serviceUninstall } from "./commands/service";
@@ -20,11 +25,20 @@ import { hooksStatusCmd, hooksUninstallCmd, installHooksCmd } from "./commands/h
 // Stamped by tsup from package.json; undefined when run from source via tsx.
 declare const __AAC_VERSION__: string;
 
+// Invoked through the legacy bin name? Same behavior — just a gentle note on
+// stderr so scripts parsing stdout are unaffected.
+if (basename(process.argv[1] ?? "") === LEGACY_CLI_NAME) {
+  console.error(
+    `\`${LEGACY_CLI_NAME}\` is now \`${CLI_NAME}\`.\n` +
+      `The old command remains available during the migration period.\n`
+  );
+}
+
 const program = new Command();
 
 program
-  .name("aster-agent")
-  .description("Local-first AI coding agent safety, work audit, and outcome console")
+  .name(CLI_NAME)
+  .description("Local-first audit and security observability for AI coding agents")
   .version(typeof __AAC_VERSION__ === "string" ? __AAC_VERSION__ : "dev");
 
 const port = (v: string) => Number.parseInt(v, 10);
@@ -99,6 +113,15 @@ hooks
   .command("uninstall")
   .description("Remove collector hooks (backs up before changing)")
   .action(() => hooksUninstallCmd());
+
+program
+  .command("migrate")
+  .description(
+    "Copy data from the legacy ~/.aster-agent-console directory to ~/.aster-agent-audit " +
+      "(the legacy directory is never modified and remains the backup)"
+  )
+  .option("--dry-run", "show exactly what would be copied and rewritten, change nothing")
+  .action((opts) => migrateCmd({ dryRun: opts.dryRun }));
 
 program.parseAsync(process.argv).catch((err) => {
   // eslint-disable-next-line no-console

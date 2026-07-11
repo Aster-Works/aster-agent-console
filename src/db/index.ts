@@ -16,9 +16,26 @@ import type {
   SessionStatus,
 } from "../core/types";
 import type { GitCommitNode, RiskRow } from "../core/views";
+import { DATA_DIR_NAME, DB_FILE_NAME, LEGACY_DATA_DIR_NAME } from "../core/branding";
 
-export const DEFAULT_CONFIG_DIR = join(homedir(), ".aster-agent-console");
-export const DEFAULT_DB_PATH = join(DEFAULT_CONFIG_DIR, "agent-console.db");
+/**
+ * Data-directory resolution with legacy fallback (REFACTOR_PLAN.md D2):
+ * use `~/.aster-agent-audit` once it exists, otherwise keep using the legacy
+ * `~/.aster-agent-console`. Nothing is copied or moved automatically — the
+ * legacy directory holds a live spool and a 50MB-class DB, and only the
+ * explicit `migrate` command may touch it. A fresh install (neither dir
+ * exists) starts on the new name.
+ */
+export function resolveConfigDir(home: string = homedir()): string {
+  const next = join(home, DATA_DIR_NAME);
+  if (existsSync(next)) return next;
+  const legacy = join(home, LEGACY_DATA_DIR_NAME);
+  if (existsSync(legacy)) return legacy;
+  return next;
+}
+
+export const DEFAULT_CONFIG_DIR = resolveConfigDir();
+export const DEFAULT_DB_PATH = join(DEFAULT_CONFIG_DIR, DB_FILE_NAME);
 
 const SCHEMA = `
 create table if not exists sessions (

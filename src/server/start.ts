@@ -14,7 +14,7 @@ srv
   .start()
   .then(({ host, port }) => {
     // eslint-disable-next-line no-console
-    console.log(`Aster Agent Console collector → http://${host}:${port}  (db: ${dbPath})`);
+    console.log(`Aster Agent Audit collector → http://${host}:${port}  (db: ${dbPath})`);
   })
   .catch((err) => {
     // eslint-disable-next-line no-console

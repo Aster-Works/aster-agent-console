@@ -44,7 +44,7 @@ export function hooksUninstallCmd(): void {
   line("");
 }
 
-/** Used by `aster-agent init --install-hooks` and `aster-agent hooks install`. */
+/** Used by `aster-audit init --install-hooks` and `aster-audit hooks install`. */
 export async function installHooksCmd(opts: { dryRun?: boolean; yes?: boolean } = {}): Promise<void> {
   const dryRun = opts.dryRun ?? false;
   brand();
@@ -83,7 +83,7 @@ export async function installHooksCmd(opts: { dryRun?: boolean; yes?: boolean } 
   const results = installHooks(false);
   results.forEach(reportAction);
   line(
-    `\n  ${sym.ok} Done. Hooks POST to the local collector only. ${pc.dim("Run `aster-agent dashboard` to view activity.")}`
+    `\n  ${sym.ok} Done. Hooks POST to the local collector only. ${pc.dim("Run `aster-audit dashboard` to view activity.")}`
   );
   line("");
 }

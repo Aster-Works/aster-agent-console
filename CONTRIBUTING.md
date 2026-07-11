@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping build **Aster Agent Console** (`@asterworks/agent-console`) — a local-first safety, work-audit, and outcome dashboard for Claude Code and Codex. This guide gets you from clone to green tests. It's a beta; honesty and small, tested changes are more valuable than big ones.
+Thanks for helping build **Aster Agent Audit** (`@asterworks/agent-audit`) — a local-first safety, work-audit, and outcome dashboard for Claude Code and Codex. This guide gets you from clone to green tests. It's a beta; honesty and small, tested changes are more valuable than big ones.
 
 ## Prerequisites
 
@@ -48,7 +48,7 @@ pnpm build:all        # tsc + vite build (dist/web) then tsup (dist-cli/)
 In dev the dashboard runs on `127.0.0.1:5173` and proxies `/api`, `/events`, and `/health` to the collector on `127.0.0.1:48321`. To exercise the CLI without building:
 
 ```bash
-pnpm aster-agent <command>   # runs src/cli/index.ts via tsx
+pnpm aster-agent <command>   # runs src/cli/index.ts via tsx (package.json script name is unchanged)
 ```
 
 ## Project layout
@@ -57,7 +57,7 @@ pnpm aster-agent <command>   # runs src/cli/index.ts via tsx
 src/
   core/     shared types + logic (redaction, risk, mcp, policy, classify, aggregate)
   web/      React dashboard (routes/, components/, data/); Vite + Tailwind
-  db/       SQLite via better-sqlite3 (WAL); DEFAULT_CONFIG_DIR = ~/.aster-agent-console
+  db/       SQLite via better-sqlite3 (WAL); DEFAULT_CONFIG_DIR = ~/.aster-agent-audit
   server/   local collector + JSON API + SSE + MCP scan (index, collector, mcp-scan, spool)
   cli/      commander CLI (index.ts, commands/, util/)
   cli/hooks/  agent hook installer + hook script

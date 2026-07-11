@@ -1,7 +1,15 @@
-import { accessSync, constants, existsSync, mkdirSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import pc from "picocolors";
 import { openDb } from "../../db/index";
-import { CONFIG_DIR, DB_PATH, PORT, HOST } from "../util/paths";
+import {
+  CLI_NAME,
+  DATA_DIR_NAME,
+  LEGACY_DATA_DIR_NAME,
+  MIGRATION_MARKER_FILE,
+} from "../../core/branding";
+import { CONFIG_DIR, DB_PATH, PORT, HOST, SPOOL_DIR } from "../util/paths";
 import { detectAgents } from "../util/detect";
 import { scanMcpEnvironment } from "../../server/mcp-scan";
 import { brand, check, heading, line } from "../util/ui";
@@ -35,11 +43,50 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
   try {
     if (!existsSync(CONFIG_DIR)) mkdirSync(CONFIG_DIR, { recursive: true });
     accessSync(CONFIG_DIR, constants.W_OK);
-    check(true, "Config directory writable", CONFIG_DIR);
+    check(true, "Data directory writable", CONFIG_DIR);
   } catch {
     dirOk = false;
     problems++;
-    check(false, "Config directory writable", CONFIG_DIR);
+    check(false, "Data directory writable", CONFIG_DIR);
+  }
+
+  // Migration status (the data dir was renamed with the product).
+  const home = homedir();
+  const legacyDir = join(home, LEGACY_DATA_DIR_NAME);
+  const nextDir = join(home, DATA_DIR_NAME);
+  const migrated = existsSync(join(nextDir, MIGRATION_MARKER_FILE));
+  if (migrated) {
+    check(true, "Data migration", `done — ${nextDir} is current (${legacyDir} kept as backup)`);
+  } else if (existsSync(legacyDir) && existsSync(nextDir)) {
+    problems++;
+    check(
+      false,
+      "Data migration",
+      `both ${LEGACY_DATA_DIR_NAME} and ${DATA_DIR_NAME} exist with no migration marker — resolve manually (see \`${CLI_NAME} migrate\`)`
+    );
+  } else if (existsSync(legacyDir)) {
+    check(
+      "warn",
+      "Data migration",
+      `using legacy ${LEGACY_DATA_DIR_NAME} — run \`${CLI_NAME} migrate\` when ready (copy-based, old dir kept as backup)`
+    );
+  }
+
+  // Spooled events waiting for a collector are silent data debt — surface them.
+  try {
+    const spoolFile = join(SPOOL_DIR, "spool.jsonl");
+    if (existsSync(spoolFile)) {
+      const mb = statSync(spoolFile).size / (1024 * 1024);
+      if (mb >= 0.1) {
+        check(
+          "warn",
+          "Spooled events",
+          `${mb.toFixed(1)} MB waiting — start the collector to ingest them (\`${CLI_NAME} dashboard\` or \`${CLI_NAME} service install\`)`
+        );
+      }
+    }
+  } catch {
+    /* spool unreadable — nothing actionable to report */
   }
 
   if (dirOk) {
@@ -59,7 +106,7 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
   if (state === "running") {
     check(true, "Local server", `running at http://${HOST}:${port}`);
   } else {
-    check("warn", "Local server", `not running · start with 'aster-agent dashboard'`);
+    check("warn", "Local server", `not running · start with '${CLI_NAME} dashboard'`);
   }
   check(true, "Bind address", `${HOST} only (no external access)`);
 
@@ -69,9 +116,10 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
     if (!a.present) {
       check("warn", a.label, "not detected on this machine");
     } else if (a.hookInstalled) {
-      check(true, a.label, "hook installed");
+      // Honest labels: Codex has no hook — its session logs are read directly.
+      check(true, a.label, a.mechanism === "hook" ? "hook installed" : "collecting (reads session logs, no config change)");
     } else {
-      check("warn", a.label, "detected · hook not installed (run `aster-agent init`)");
+      check("warn", a.label, `detected · not collecting (run \`${CLI_NAME} init\`)`);
     }
   }
 
@@ -86,7 +134,7 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
         clean ? true : "warn",
         "MCP config scan",
         `${scan.summary.serverCount} server(s) · ${scan.findings.length} finding(s) · grade ${scan.summary.grade}` +
-          `  ${pc.dim("(aster-agent scan for detail)")}`
+          `  ${pc.dim(`(${CLI_NAME} scan for detail)`)}`
       );
     }
   } catch {
@@ -95,7 +143,7 @@ export async function doctor(opts: { port?: number; db?: string } = {}): Promise
 
   heading("Summary");
   if (problems === 0) {
-    line(`  ${pc.green("All core checks passed.")} ${pc.dim("Run `aster-agent dashboard` to view your console.")}`);
+    line(`  ${pc.green("All core checks passed.")} ${pc.dim(`Run \`${CLI_NAME} dashboard\` to view your console.`)}`);
   } else {
     line(`  ${pc.red(`${problems} issue(s) found.`)} ${pc.dim("See the checks above.")}`);
     process.exitCode = 1;

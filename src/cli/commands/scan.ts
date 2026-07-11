@@ -1,5 +1,5 @@
 /**
- * `aster-agent scan [dir]` — scan local MCP configuration for security risks
+ * `aster-audit scan [dir]` — scan local MCP configuration for security risks
  * (Phase 6). Read-only: discovers and inspects config files as text, never
  * executes anything. Exits non-zero when findings meet the policy's failOn
  * threshold, so it works as a CI / pre-flight gate.

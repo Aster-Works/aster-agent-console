@@ -109,7 +109,7 @@ export function Settings() {
         <div className="aac-card px-4 py-3 text-[12px] text-ink-2">
           {t("You’re viewing demo data. Start the collector to see and edit real settings:")}
           <div className="mt-2 max-w-sm">
-            <CommandBlock command="aster-agent dashboard" />
+            <CommandBlock command="aster-audit dashboard" />
           </div>
         </div>
       )}
@@ -135,7 +135,7 @@ export function Settings() {
               <div className="mb-1.5 text-[11px] text-ink-3">
                 {t("Claude Code uses a local hook; Codex is read automatically from its session logs — no config change.")}
               </div>
-              <CommandBlock command="aster-agent init" />
+              <CommandBlock command="aster-audit init" />
               <p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">
                 {t("Existing config is backed up first. The hook only POSTs to")}{" "}
                 <span className="font-mono">127.0.0.1:{data?.status.port ?? status.port}</span> {t("and never blocks your workflow.")}
@@ -240,7 +240,7 @@ export function Settings() {
           ) : (
             <div className="space-y-2">
               <EmptyState icon={Stethoscope} title={t("Start the collector for live diagnostics")} />
-              <CommandBlock command="aster-agent doctor" />
+              <CommandBlock command="aster-audit doctor" />
             </div>
           )}
         </Panel>
@@ -398,10 +398,10 @@ function ExportButtons({ live }: { live: boolean }) {
     try {
       if (kind === "json") {
         const d = await (await fetch("/api/dataset")).json();
-        triggerDownload(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }), "aster-agent-report.json");
+        triggerDownload(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }), "aster-audit-report.json");
       } else {
         const rows = (await (await fetch("/api/risk-findings")).json()) as Record<string, unknown>[];
-        triggerDownload(new Blob([toCsv(rows)], { type: "text/csv" }), "aster-agent-findings.csv");
+        triggerDownload(new Blob([toCsv(rows)], { type: "text/csv" }), "aster-audit-findings.csv");
       }
     } finally {
       setBusy(null);

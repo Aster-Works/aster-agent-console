@@ -2,7 +2,7 @@
  * Team policy (Phase 6). Mirrors AsterGuard's `.aster-guard/policy.json`:
  *   allowedMcpHosts  — remote MCP hosts the user has vetted (AAC-MCP-005 skips them)
  *   ignoreRules      — rule ids to suppress everywhere (display + scan exit code)
- *   failOn           — severity that makes `aster-agent scan` exit non-zero
+ *   failOn           — severity that makes `aster-audit scan` exit non-zero
  *
  * Policy is advisory over the *display* of findings and the scan exit code. It
  * never changes what is collected — the DB keeps the honest record; policy only

@@ -8,15 +8,17 @@
  */
 export function hookScript(agent: string, endpoint: string): string {
   return `#!/usr/bin/env node
-// Aster Agent Console hook for ${agent}. Generated — safe to delete.
+// Aster Agent Audit hook for ${agent}. Generated — safe to delete.
 // It forwards events to the local collector and never executes commands.
 import { appendFileSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const AGENT = ${JSON.stringify(agent)};
 const ENDPOINT = ${JSON.stringify(endpoint)};
-const SPOOL_DIR = join(homedir(), ".aster-agent-console", "spool");
+// Spool next to this script (<data dir>/hooks/ → <data dir>/spool/), so the
+// script keeps working wherever the data directory lives or is renamed to.
+const SPOOL_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "spool");
 const TIMEOUT_MS = 1200;
 
 function stripSecrets(text) {

@@ -1,6 +1,6 @@
 # MCP Security Scan
 
-`aster-agent scan` inspects the MCP (Model Context Protocol) server configs on your machine for risky server definitions, and the dashboard's **Risk Radar** surfaces the same findings live. It is a static, heuristic check — read-only and offline. It is not exhaustive; treat it as defense-in-depth, not a guarantee.
+`aster-audit scan` inspects the MCP (Model Context Protocol) server configs on your machine for risky server definitions, and the dashboard's **Risk Radar** surfaces the same findings live. It is a static, heuristic check — read-only and offline. It is not exhaustive; treat it as defense-in-depth, not a guarantee.
 
 ## What it does
 
@@ -9,13 +9,13 @@ The scan **discovers JSON MCP config files, reads them, and inspects each server
 ```bash
 # Scan the current directory + your home config, exit non-zero if it finds
 # something at/above your failOn threshold (CI / pre-flight gate)
-aster-agent scan
+aster-audit scan
 
 # Scan a specific project directory instead of the cwd
-aster-agent scan ./path/to/repo
+aster-audit scan ./path/to/repo
 ```
 
-The same results power the **Risk Radar** screen in `aster-agent dashboard`, including the A–F posture grade.
+The same results power the **Risk Radar** screen in `aster-audit dashboard`, including the A–F posture grade.
 
 > **Beta, and honest about it.** These rules catch high-signal patterns; they will miss novel or obfuscated tricks. A clean scan means "nothing matched," not "provably safe."
 
@@ -80,7 +80,7 @@ Policy-ignored rules are removed before scoring, so silencing a rule you've vett
 
 ## Policy: `policy.json`
 
-Drop an optional `policy.json` in `~/.aster-agent-console/` to tune what the scan surfaces and when it fails. Policy is advisory over **display and exit code only** — it never changes what the database records. The DB keeps the honest, unfiltered log.
+Drop an optional `policy.json` in `~/.aster-agent-audit/` to tune what the scan surfaces and when it fails. Policy is advisory over **display and exit code only** — it never changes what the database records. The DB keeps the honest, unfiltered log.
 
 ```json
 {
@@ -94,17 +94,17 @@ Drop an optional `policy.json` in `~/.aster-agent-console/` to tune what the sca
 |---|---|
 | `allowedMcpHosts` | Hosts you've vetted for **AAC-MCP-005**. `example.com` matches exactly; `*.example.com` matches any subdomain **and** the apex. Matching hosts produce no remote-origin finding. |
 | `ignoreRules` | Rule ids suppressed everywhere — dropped from Risk Radar, the scan output, the exit-code check, and the grade. |
-| `failOn` | Severity at which `aster-agent scan` exits non-zero. Default `"high"` (high + critical fail; medium and below do not). Set `"never"` to disable the gate. Also accepts `"critical"`, `"medium"`, `"low"`, `"info"`. |
+| `failOn` | Severity at which `aster-audit scan` exits non-zero. Default `"high"` (high + critical fail; medium and below do not). Set `"never"` to disable the gate. Also accepts `"critical"`, `"medium"`, `"low"`, `"info"`. |
 
 A missing or malformed `policy.json` is treated as empty policy — the scan still runs with defaults.
 
 ### Exit codes (CI)
 
-`aster-agent scan` sets a non-zero exit code by itself when any surviving finding is at or above `failOn` (default `high`). Everything below the threshold is reported but exits `0` — so a bare `aster-agent scan` already fails the build on a high/critical finding, no `|| exit 1` needed.
+`aster-audit scan` sets a non-zero exit code by itself when any surviving finding is at or above `failOn` (default `high`). Everything below the threshold is reported but exits `0` — so a bare `aster-audit scan` already fails the build on a high/critical finding, no `|| exit 1` needed.
 
 ```bash
 # Fails the build on any high or critical MCP finding
-aster-agent scan
+aster-audit scan
 ```
 
 ## Why we reimplement AsterGuard natively

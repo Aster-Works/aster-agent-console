@@ -1,8 +1,61 @@
 # Changelog
 
-All notable changes to Aster Agent Console are documented here. The format is
-based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
-project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to Aster Agent Audit (formerly Aster Agent Console) are
+documented here. The format is based on [Keep a
+Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] — Unreleased
+
+### Renamed
+
+- **The project is now Aster Agent Audit** (was Aster Agent Console). This is
+  a rename, not a rewrite — behavior is unchanged except where noted below.
+  - Product name: Aster Agent Console → **Aster Agent Audit**.
+  - CLI binary: `aster-agent` → **`aster-audit`**. `aster-agent` keeps working
+    as a permanent alias (same binary, same behavior); invoking it prints a
+    two-line notice on stderr.
+  - npm package: `@asterworks/agent-console` → **`@asterworks/agent-audit`**
+    (not yet published — see `MIGRATION_AND_RELEASE.md`; the previous package
+    remains the latest published one until then).
+  - Data directory: `~/.aster-agent-console/` → **`~/.aster-agent-audit/`**. A
+    fresh install uses the new directory immediately; an existing install
+    keeps using the legacy directory as-is until migrated (see Added below).
+    The SQLite filename inside it (`agent-console.db`) is unchanged.
+  - Background service launchd label: `com.asterworks.agent-console` →
+    **`com.asterworks.agent-audit`**.
+
+### Added
+
+- **`aster-audit migrate [--dry-run]`** — copies the legacy
+  `~/.aster-agent-console` data directory to `~/.aster-agent-audit`. The
+  legacy directory is never modified (aside from one marker file added on
+  success) and remains the backup; the DB is copied via the SQLite backup
+  API, the event spool and Codex import cursor are carried over, hook scripts
+  are regenerated, and live hook entries in `~/.claude/settings.json` (and a
+  managed `~/.codex/config.toml` block, if present) are re-pointed, each
+  backed up first. Refuses to run while a collector is active. Idempotent —
+  re-running a completed migration is a no-op.
+- **`doctor` reports migration status**, including a warning when both the
+  legacy and new data directories exist with no migration marker (unresolved
+  conflict), and how much data is sitting in a not-yet-migrated legacy
+  directory.
+- **`doctor` surfaces spooled-event backlog** — when unread events are
+  waiting in the spool for a collector to ingest them, `doctor` now reports
+  the size and how to start collecting.
+- **Legacy installs are recognized forever, not just during migration.**
+  `hooks uninstall` restores a config written by any prior version, and
+  `service uninstall` finds and removes a background job installed under the
+  old launchd label — a machine that never runs `migrate` still gets a clean
+  uninstall.
+
+### Changed
+
+- **`doctor` describes Codex collection honestly.** Codex has no installable
+  hook; its activity is always read from its own session logs. `doctor`
+  previously implied Codex collection worked like Claude Code's hook
+  installation — it now reports Codex as "collecting (reads session logs, no
+  config change)" instead of "hook installed."
 
 ## [0.1.17] — 2026-07-08
 

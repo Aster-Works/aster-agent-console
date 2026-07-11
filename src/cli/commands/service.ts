@@ -1,18 +1,30 @@
 /**
- * `aster-agent service install|uninstall|status` — run the collector as a
+ * `aster-audit service install|uninstall|status` — run the collector as a
  * macOS launchd background agent so events are collected even when no dashboard
  * is open. On non-macOS, points the user at their own supervisor + `serve`.
+ *
+ * The launchd label changed with the product rename. The legacy label is
+ * recognized forever: install boots the old job out first, uninstall removes
+ * whichever is present, status reports both — a service installed by any
+ * prior version can always be found and removed.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
+import { CLI_NAME, LAUNCHD_LABEL, LEGACY_LAUNCHD_LABEL } from "../../core/branding";
 import { CONFIG_DIR, PORT, HOST } from "../util/paths";
 import { brand, check, heading, line, sym } from "../util/ui";
 
-const LABEL = "com.asterworks.agent-console";
+const LABEL = LAUNCHD_LABEL;
 const PLIST_PATH = join(homedir(), "Library", "LaunchAgents", `${LABEL}.plist`);
+const LEGACY_PLIST_PATH = join(
+  homedir(),
+  "Library",
+  "LaunchAgents",
+  `${LEGACY_LAUNCHD_LABEL}.plist`
+);
 const LOG_PATH = join(CONFIG_DIR, "service.log");
 
 function escapeXml(s: string): string {
@@ -62,8 +74,24 @@ function cliEntry(): string {
 function ensureMac(): boolean {
   if (process.platform === "darwin") return true;
   line(`  ${sym.warn} The background service uses macOS launchd and is macOS-only.`);
-  line(`  ${pc.dim("Elsewhere, run `aster-agent serve` under your own supervisor (systemd, pm2, …).")}`);
+  line(`  ${pc.dim(`Elsewhere, run \`${CLI_NAME} serve\` under your own supervisor (systemd, pm2, …).`)}`);
   return false;
+}
+
+/** Unload + remove a legacy-label job if one is installed. Returns true if found. */
+function removeLegacyService(): boolean {
+  if (!existsSync(LEGACY_PLIST_PATH)) return false;
+  try {
+    execFileSync("launchctl", ["unload", "-w", LEGACY_PLIST_PATH], { stdio: "ignore" });
+  } catch {
+    /* not loaded */
+  }
+  try {
+    rmSync(LEGACY_PLIST_PATH);
+  } catch {
+    /* leave it; status will keep reporting it */
+  }
+  return true;
 }
 
 export function serviceInstall(opts: { skipBrand?: boolean } = {}): void {
@@ -73,6 +101,10 @@ export function serviceInstall(opts: { skipBrand?: boolean } = {}): void {
 
   mkdirSync(join(homedir(), "Library", "LaunchAgents"), { recursive: true });
   mkdirSync(CONFIG_DIR, { recursive: true });
+  // A job installed under the legacy label would double-collect — remove it first.
+  if (removeLegacyService()) {
+    check(true, "Legacy service removed", LEGACY_PLIST_PATH);
+  }
   // Reload cleanly if it was already installed.
   try {
     execFileSync("launchctl", ["unload", PLIST_PATH], { stdio: "ignore" });
@@ -86,7 +118,7 @@ export function serviceInstall(opts: { skipBrand?: boolean } = {}): void {
     line(`  ${sym.bullet} The collector runs in the background and starts at login.`);
     line(`  ${sym.bullet} Retains 30 days of history; older data is pruned automatically.`);
     line(`  ${sym.bullet} Logs: ${pc.dim(LOG_PATH)}`);
-    line(`  ${sym.arrow} ${pc.dim("`aster-agent dashboard` reuses the running collector.")}`);
+    line(`  ${sym.arrow} ${pc.dim(`\`${CLI_NAME} dashboard\` reuses the running collector.`)}`);
   } catch (err) {
     check(false, "launchctl load failed", String((err as Error).message));
     process.exitCode = 1;
@@ -98,8 +130,10 @@ export function serviceUninstall(): void {
   brand();
   heading("Remove background collector");
   if (!ensureMac()) return;
+  const hadLegacy = removeLegacyService();
+  if (hadLegacy) check(true, "Legacy launchd agent removed", LEGACY_PLIST_PATH);
   if (!existsSync(PLIST_PATH)) {
-    check("warn", "Not installed", "no launchd agent found");
+    if (!hadLegacy) check("warn", "Not installed", "no launchd agent found");
     line("");
     return;
   }
@@ -124,8 +158,15 @@ export async function serviceStatus(): Promise<void> {
   check(
     installed ? true : "warn",
     "launchd agent",
-    installed ? PLIST_PATH : "not installed (run `aster-agent service install`)"
+    installed ? PLIST_PATH : `not installed (run \`${CLI_NAME} service install\`)`
   );
+  if (existsSync(LEGACY_PLIST_PATH)) {
+    check(
+      "warn",
+      "Legacy service present",
+      `${LEGACY_PLIST_PATH} — run \`${CLI_NAME} service install\` to replace it`
+    );
+  }
   if (process.platform === "darwin" && installed) {
     try {
       const out = execFileSync("launchctl", ["list", LABEL], { encoding: "utf8" });

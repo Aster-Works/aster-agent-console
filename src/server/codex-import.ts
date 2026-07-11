@@ -22,9 +22,11 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { AgentName } from "../core/types";
 import { parseCodexRollout } from "../core/codex-rollout";
+import { DEFAULT_CONFIG_DIR } from "../db/index";
 
 const DEFAULT_ROOT = join(homedir(), ".codex", "sessions");
-const DEFAULT_STATE = join(homedir(), ".aster-agent-console", "codex-import.json");
+// Resolved via the shared dir resolution (legacy fallback until `migrate` runs).
+const DEFAULT_STATE = join(DEFAULT_CONFIG_DIR, "codex-import.json");
 const MAX_ROLLOUT_BYTES = 128 * 1024 * 1024;
 const DEFAULT_INTERVAL_MS = 5000;
 

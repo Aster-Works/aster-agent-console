@@ -1,6 +1,6 @@
 # Privacy & Local-First Data Handling
 
-Aster Agent Console (`@asterworks/agent-console`, MIT, beta) is a local-first
+Aster Agent Audit (`@asterworks/agent-audit`, MIT, beta) is a local-first
 safety and work-audit dashboard for Claude Code and Codex. Everything it
 captures stays on your machine. This document tells a security-conscious
 developer exactly what is stored, where, how secrets are handled, and how to
@@ -10,21 +10,29 @@ inspect or delete it — with the source file for every claim so you can verify.
 > guarantee. The MCP scan is static and heuristic, not exhaustive. Treat the
 > local database as sensitive and keep it local.
 
+> **Renamed from Aster Agent Console.** The data directory moved from
+> `~/.aster-agent-console/` to `~/.aster-agent-audit/`. A fresh install uses
+> the new directory immediately; an existing install keeps using the old one
+> as-is until you run `aster-audit migrate` — nothing moves automatically. See
+> [Migrating from Aster Agent Console](migration-from-agent-console.md).
+
 ## TL;DR
 
 - **No cloud upload. No telemetry.** Nothing leaves `127.0.0.1`.
-- All data lives in `~/.aster-agent-console/` as a plain SQLite file.
+- All data lives in `~/.aster-agent-audit/` (or, on an existing install that
+  hasn't migrated yet, `~/.aster-agent-console/`) as a plain SQLite file.
 - Secrets are redacted **before** they are written to disk.
 - The tool **never executes** any command it captures or scans — commands are
   only ever inspected as text.
 - Cloud/team features are **opt-in future work, off by default** — they don't
   exist in this build.
-- To delete everything: `rm -rf ~/.aster-agent-console`.
+- To delete everything: `rm -rf ~/.aster-agent-audit` (add
+  `~/.aster-agent-console` too if you haven't migrated).
 
 ## What is captured
 
 Capture happens through agent hooks you install explicitly with
-`aster-agent init --install-hooks` or `aster-agent hooks install`. A hook reads
+`aster-audit init --install-hooks` or `aster-audit hooks install`. A hook reads
 the agent's event from stdin and POSTs `{agent, payload}` to the local
 collector (`src/cli/hooks/script.ts`). From your agent sessions this includes:
 
@@ -57,13 +65,18 @@ Everything is under a single directory
 `src/cli/util/paths.ts`):
 
 ```
-~/.aster-agent-console/
-├── agent-console.db      # SQLite (better-sqlite3, WAL mode)
+~/.aster-agent-audit/      # or ~/.aster-agent-console/ on an install that hasn't migrated
+├── agent-console.db      # SQLite (better-sqlite3, WAL mode) — filename unchanged by the rename
 ├── hooks/
 ├── backups/              # pre-change backups of your agent config files
 ├── spool/                # redacted-minimal events buffered while collector was offline
 └── policy.json           # optional, user-created
 ```
+
+`DEFAULT_CONFIG_DIR` resolves to `~/.aster-agent-audit/` if it exists, otherwise
+to `~/.aster-agent-console/` if that exists, otherwise to `~/.aster-agent-audit/`
+(so a brand-new install lands on the new name automatically; an existing
+install keeps its data where it is until you run `aster-audit migrate`).
 
 WAL mode means you may also see `agent-console.db-wal` and `agent-console.db-shm`
 alongside the main file (`src/db/index.ts`: `journal_mode = WAL`).
@@ -83,7 +96,7 @@ concretely:
 - The **spool is redacted-minimal** — while the collector is offline, the hook
   strips secrets from the payload before buffering it
   (`stripSecrets` in `src/cli/hooks/script.ts`), then replays on the next
-  `aster-agent dashboard`.
+  `aster-audit dashboard`.
 - **Finding evidence is redacted** — every finding carries `redactedEvidence`,
   never a raw secret.
 
@@ -115,13 +128,13 @@ The local server (`src/server/index.ts`) is deliberately minimal and inert:
 Verify it's local:
 
 ```bash
-aster-agent doctor
+aster-audit doctor
 curl -s http://127.0.0.1:48321/health
 ```
 
 ## MCP config scan is read-only
 
-`aster-agent scan [dir]` discovers MCP config files and inspects them
+`aster-audit scan [dir]` discovers MCP config files and inspects them
 (`src/core/mcp.ts`, `src/server/mcp-scan.ts`). Only **JSON** MCP configs are
 discovered (Claude, Cursor, VS Code, Windsurf, Cline, Gemini); Codex's
 `config.toml` is **not parsed** and is explicitly deferred, matching AsterGuard.
@@ -139,8 +152,9 @@ DB keeps the honest record** (`src/core/policy.ts`).
 Installing hooks edits your agent config, so the installer
 (`src/cli/hooks/installer.ts`) is conservative:
 
-- **Always backs up first** to `~/.aster-agent-console/backups/` before any
-  change.
+- **Always backs up first** to `backups/` inside your active data directory
+  (`~/.aster-agent-audit/backups/`, or `~/.aster-agent-console/backups/` on an
+  install that hasn't migrated) before any change.
 - **Merges, doesn't clobber** — Claude Code hooks merge into `settings.json`
   (existing hooks preserved); Codex uses a fenced insert into `config.toml`
   `notify` (any existing `notify` is commented out, reversibly).
@@ -152,40 +166,43 @@ Installing hooks edits your agent config, so the installer
 Preview before touching anything:
 
 ```bash
-aster-agent init --dry-run
-aster-agent hooks status
+aster-audit init --dry-run
+aster-audit hooks status
 ```
 
 Remove cleanly:
 
 ```bash
-aster-agent hooks uninstall
+aster-audit hooks uninstall
 ```
 
 ## Inspect and delete your data
 
 The database is a plain SQLite file — no proprietary format, no lock-in.
-Inspect it directly:
+Inspect it directly (swap in `~/.aster-agent-console/` if you haven't migrated):
 
 ```bash
-sqlite3 ~/.aster-agent-console/agent-console.db '.tables'
-sqlite3 ~/.aster-agent-console/agent-console.db 'select id, agent, type, title from events limit 20;'
+sqlite3 ~/.aster-agent-audit/agent-console.db '.tables'
+sqlite3 ~/.aster-agent-audit/agent-console.db 'select id, agent, type, title from events limit 20;'
 ```
 
 Delete a single session, the whole DB, or everything:
 
 ```bash
 # nuke the database only
-rm -f ~/.aster-agent-console/agent-console.db*
+rm -f ~/.aster-agent-audit/agent-console.db*
 
 # nuke everything (db, spool, backups, hooks, policy)
+rm -rf ~/.aster-agent-audit
+
+# and, if you haven't migrated and want the legacy data gone too:
 rm -rf ~/.aster-agent-console
 ```
 
 Point the tool at an alternate DB (e.g. a throwaway) with `--db`:
 
 ```bash
-aster-agent dashboard --db /tmp/scratch.db
+aster-audit dashboard --db /tmp/scratch.db
 ```
 
 ## Cloud & team features

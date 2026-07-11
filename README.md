@@ -1,28 +1,43 @@
-# Aster Agent Console
+# Aster Agent Audit
 
-> The **local-first, no-account** console that unifies **safety + work-audit + MCP security** for **Claude Code _and_ Codex** — everything runs on your machine.
+> **A local-first audit and security observability layer for AI coding agents.**
 
-![Aster Agent Console — product tour](docs/assets/demo-tour.gif)
+See what Claude Code and Codex did, detect risky behavior, inspect MCP exposure, and produce explainable evidence—without sending your code or prompts to a cloud service.
 
-Aster Agent Console makes the work of AI coding agents visible along three axes:
+![Aster Agent Audit — product tour](docs/assets/demo-tour.gif)
+
+Aster Agent Audit makes the work of AI coding agents visible along three axes:
 
 1. **Safety** — dangerous shell commands, secret exposure, **MCP-server permission & vulnerability scan**, network/file/git operations.
 2. **Work Audit** — an explainable timeline from user prompt → tool call → file diff → tests → commit.
 3. **Outcome** — sessions, files changed, tests, commits, PR readiness, and cost per useful work.
 
-**Why this one?** Cost CLIs (e.g. `ccusage`) only track spend; cloud agent-security scanners increasingly require an account and send data off-box. Aster Agent Console is the one console that puts **real safety detection + an explainable work-audit timeline + a real MCP security scan** in a single **local, no-account** dashboard — and it covers **both Claude Code and Codex** (Codex via its session/rollout logs, which most tools skip). Your code and prompts never leave your machine.
+**Why this one?** Cost CLIs (e.g. `ccusage`) only track spend; cloud agent-security scanners increasingly require an account and send data off-box. Aster Agent Audit is the one tool that puts **real safety detection + an explainable work-audit timeline + a real MCP security scan** in a single **local, no-account** dashboard — and it covers **both Claude Code and Codex** (Codex via its session/rollout logs, which most tools skip). Your code and prompts never leave your machine.
 
 ## Install
 
 Requires Node.js ≥ 20.
 
 ```bash
-npm install -g @asterworks/agent-console   # then use the `aster-agent` command
+npm install -g @asterworks/agent-audit   # then use the `aster-audit` command
 # or run without installing:
-npx @asterworks/agent-console dashboard
+npx @asterworks/agent-audit dashboard
 ```
 
+> **Not published yet.** `@asterworks/agent-audit` hasn't been published to npm. Until it is, `@asterworks/agent-console` (`aster-agent` command) is the latest published package — see [Migrating from Aster Agent Console](docs/migration-from-agent-console.md) below.
+
 New here? The **[5-minute quickstart](docs/quickstart.md)** takes you from install to real data.
+
+## Migrating from Aster Agent Console
+
+The project was renamed **Aster Agent Console → Aster Agent Audit**. If you already have Aster Agent Console installed, nothing breaks:
+
+- The old `aster-agent` command keeps working as an alias for `aster-audit` — same binary, same behavior, just a two-line heads-up on stderr.
+- Your existing data stays in `~/.aster-agent-console/` and keeps being used as-is until you migrate. Nothing moves automatically.
+- When ready, run `aster-audit migrate` (add `--dry-run` first to preview) to copy your data to `~/.aster-agent-audit/`. It's a copy, not a move — `~/.aster-agent-console/` is left completely untouched and doubles as your backup. Migration also carries the unread event spool and the Codex import cursor, rewrites `config.json`'s stored path, regenerates hook scripts, and re-points the hook entries in `~/.claude/settings.json` (backing that file up first). It refuses to run while a collector is active, and re-running it is a no-op once done.
+- The background service's launchd label also changed (`com.asterworks.agent-audit`); after migrating, reinstall it with `aster-audit service install` so it picks up the new data directory.
+
+Full walkthrough, troubleshooting, and FAQ: **[docs/migration-from-agent-console.md](docs/migration-from-agent-console.md)**.
 
 ## Trust by default
 
@@ -41,7 +56,7 @@ New here? The **[5-minute quickstart](docs/quickstart.md)** takes you from insta
 |------|-------|-------|
 | 1 | Local dashboard MVP (Vite + React, deterministic demo data) | ✅ Done |
 | 2 | Local collector + SQLite (`POST /events`, redaction, risk, SSE) | ✅ Done |
-| 3 | CLI (`aster-agent dashboard / doctor / init`) | ✅ Done |
+| 3 | CLI (`aster-audit dashboard / doctor / init`) | ✅ Done |
 | 4 | Claude Code + Codex hook integration (install + spool) | ✅ Done |
 | 5 | Git & test enrichment (real file diffs, commit association, test results) | ✅ Done |
 | 6 | AsterGuard integration — MCP config scan, `AAC-MCP-*` rules, policy config, posture grade | ✅ Done |
@@ -49,7 +64,7 @@ New here? The **[5-minute quickstart](docs/quickstart.md)** takes you from insta
 | 8 | Codex rollout-log ingestion, Insights (latency/failures/file-types/trend/outcomes), configurable Settings, actionable Risk Radar, Japanese UI | ✅ Done |
 | 9 | Activity Log — searchable when/where/what across every recorded action | ✅ Done |
 
-124 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Security
+141 unit/integration tests pass (`pnpm test`); web + CLI typecheck clean. Security
 code has been hardened by adversarial multi-agent reviews — e.g. one caught and
 fixed a real secret-redaction bug (case-sensitive key matching that missed
 lowercase keys) before release.
@@ -66,37 +81,40 @@ lowercase keys) before release.
 ## CLI
 
 ```bash
-aster-agent dashboard            # open the dashboard (reuses a running collector, or starts one)
-aster-agent init                 # detect Claude Code / Codex (no agent files touched)
-aster-agent init --dry-run       # detect only — modifies nothing
-aster-agent init --install-hooks # install collector hooks (backs up existing config first)
-aster-agent scan [dir]           # scan local MCP config for security risks (read-only)
-aster-agent doctor               # check Node, storage, collector health, hooks, MCP posture
-aster-agent service install      # run the collector in the background (macOS launchd; starts at login)
-aster-agent service status       # show background collector status
-aster-agent service uninstall    # stop and remove the background collector
-aster-agent hooks status         # show whether hooks are installed
-aster-agent hooks uninstall      # back up, then remove only what was installed (restores prior config)
+aster-audit dashboard            # open the dashboard (reuses a running collector, or starts one)
+aster-audit init                 # detect Claude Code / Codex (no agent files touched)
+aster-audit init --dry-run       # detect only — modifies nothing
+aster-audit init --install-hooks # install collector hooks (backs up existing config first)
+aster-audit scan [dir]           # scan local MCP config for security risks (read-only)
+aster-audit doctor               # check Node, storage, collector health, hooks, MCP posture
+aster-audit migrate [--dry-run]  # copy data from ~/.aster-agent-console to ~/.aster-agent-audit
+aster-audit service install      # run the collector in the background (macOS launchd; starts at login)
+aster-audit service status       # show background collector status
+aster-audit service uninstall    # stop and remove the background collector
+aster-audit hooks status         # show whether hooks are installed
+aster-audit hooks uninstall      # back up, then remove only what was installed (restores prior config)
 ```
+
+`aster-agent` still works as an alias for every command above during the migration period (same binary, same behavior).
 
 ### Background collection & retention
 
-By default the collector only runs while `aster-agent dashboard` is open (events
+By default the collector only runs while `aster-audit dashboard` is open (events
 are spooled and replayed otherwise). To collect **continuously** — even when no
 dashboard is open — install the background service:
 
 ```bash
-aster-agent service install   # always-on collector (macOS); dashboard then just views it
+aster-audit service install   # always-on collector (macOS); dashboard then just views it
 ```
 
-It runs `aster-agent serve` (a headless collector) via launchd, starting at
-login and restarting on crash. On non-macOS, run `aster-agent serve` under your
+It runs `aster-audit serve` (a headless collector) via launchd, starting at
+login and restarting on crash. On non-macOS, run `aster-audit serve` under your
 own supervisor (systemd, pm2, …). The console keeps **30 days** of history and
 prunes older data automatically, so the local database stays bounded.
 
 ### MCP security scan
 
-`aster-agent scan` discovers your MCP config files (Claude `~/.claude.json` &
+`aster-audit scan` discovers your MCP config files (Claude `~/.claude.json` &
 `.mcp.json`, Cursor, VS Code, Windsurf, Cline, Gemini — **JSON only; Codex's TOML
 config is not scanned**) and inspects them read-only — nothing is executed. The
 `AAC-MCP-*` rules mirror [AsterGuard](https://github.com/Aster-Works/aster-guard)'s
@@ -105,7 +123,7 @@ hardcoded secrets, unverified remote origins, package typosquatting, sensitive-f
 access, privilege escalation, credential exfiltration) and share its A–F posture
 grade. The findings feed the Risk Radar's MCP panel when the dashboard is live.
 
-Trust without fearmongering is a policy (`~/.aster-agent-console/policy.json`):
+Trust without fearmongering is a policy (`~/.aster-agent-audit/policy.json`):
 
 ```json
 {
@@ -124,8 +142,8 @@ for the full rule table.
 The collector binds to `127.0.0.1:48321` only. Hooks read the agent event from
 stdin and POST `{ agent, payload }` to the collector, which **redacts secrets
 before anything is stored**. If the collector is offline, a **redacted, minimal**
-event is spooled to `~/.aster-agent-console/spool/` and replayed on the next
-`aster-agent dashboard`. Hooks never execute commands and never block the agent
+event is spooled to `~/.aster-agent-audit/spool/` and replayed on the next
+`aster-audit dashboard`. Hooks never execute commands and never block the agent
 (short timeout, always exit 0).
 
 ## Screens
@@ -154,7 +172,7 @@ event is spooled to `~/.aster-agent-console/spool/` and replayed on the next
 ```bash
 pnpm install
 pnpm dev          # http://127.0.0.1:5173
-pnpm test         # 124 unit/integration tests
+pnpm test         # 141 unit/integration tests
 pnpm typecheck:all
 pnpm build:all    # dist/web (dashboard) + dist-cli (CLI bundle)
 ```
@@ -173,14 +191,14 @@ src/
   web/       Vite + React dashboard (app shell, components, routes, demo data)
   db/        SQLite (better-sqlite3) — Phase 2
   server/    local collector + dashboard API + SSE + MCP scan — Phase 2 / 6
-  cli/       aster-agent CLI + hook scripts — Phase 3 / 4
+  cli/       aster-audit CLI + hook scripts — Phase 3 / 4
 ```
 
-Local data lives under `~/.aster-agent-console/` (config, `agent-console.db`, `hooks/`, `backups/`, `spool/`, optional `policy.json`).
+Local data lives under `~/.aster-agent-audit/` (config, `agent-console.db`, `hooks/`, `backups/`, `spool/`, optional `policy.json`). Existing installs keep using `~/.aster-agent-console/` until you run `aster-audit migrate` — see [Migrating from Aster Agent Console](docs/migration-from-agent-console.md).
 
 ## Sponsor & Pro
 
-Aster Agent Console is free and open source, and stays that way for individual
+Aster Agent Audit is free and open source, and stays that way for individual
 local use. If it saves you time, you can **[sponsor development](https://github.com/sponsors/jimiaki7)** —
 it directly funds new detection rules and broader agent coverage.
 
@@ -207,7 +225,7 @@ MIT © Aster Works — see [LICENSE](LICENSE).
 
 # 日本語ガイド
 
-**Aster Agent Console** は、**Claude Code と Codex の両方**を対象に、**安全性・作業監査・MCPセキュリティ**を1つにまとめた、**完全ローカル・アカウント不要**のダッシュボードです。
+**Aster Agent Audit** は、Claude Code や Codex が「いつ・どこで・何をしたか」を記録し、危険な操作や MCP 設定を検出して、説明可能な監査証跡として残す、**ローカルファースト**のツールです（対応エージェントは **Claude Code と Codex のみ**）。
 
 コスト集計だけのCLI（`ccusage` 等）や、アカウント必須・データを外に送るクラウド型のエージェントセキュリティとは違い、**実際の危険検知＋説明可能な作業タイムライン＋実MCPセキュリティ診断**を、**あなたのマシン内で完結**して提供します。とくに **Codex のセッション/rolloutログ取り込み**は、多くのツールが対応していない領域です。コードもプロンプトも、マシンの外には出ません。
 
@@ -226,24 +244,38 @@ MIT © Aster Works — see [LICENSE](LICENSE).
 Node.js 20 以上が必要です。
 
 ```bash
-npm install -g @asterworks/agent-console   # 以後 `aster-agent` コマンドが使えます
+npm install -g @asterworks/agent-audit   # 以後 `aster-audit` コマンドが使えます
 # インストールせずに試す:
-npx @asterworks/agent-console dashboard
+npx @asterworks/agent-audit dashboard
 ```
+
+> **まだ未公開です。** `@asterworks/agent-audit` は npm に未公開です。公開されるまでは、旧パッケージ `@asterworks/agent-console`（`aster-agent` コマンド）が最新版です。旧バージョンからの移行は下記「[Aster Agent Console からの移行](#aster-agent-console-からの移行)」を参照してください。
 
 導入から実データ表示まではおよそ5分です（英語の [Quickstart](docs/quickstart.md) を参照）。
 
 ## 使い方
 
 ```bash
-aster-agent init        # Claude Code / Codex の連携をセットアップ（既存設定は自動バックアップ）
-aster-agent dashboard   # コレクタを起動し、ブラウザでダッシュボードを開く
-aster-agent doctor      # 環境チェック
-aster-agent scan        # MCP 設定のセキュリティ診断
+aster-audit init        # Claude Code / Codex の連携をセットアップ（既存設定は自動バックアップ）
+aster-audit dashboard   # コレクタを起動し、ブラウザでダッシュボードを開く
+aster-audit doctor      # 環境チェック
+aster-audit scan        # MCP 設定のセキュリティ診断
 ```
 
 - **Claude Code** はローカルフックで連携します。
 - **Codex** は設定を一切変更せず、セッションログ（`~/.codex/sessions`）を自動で読み取ります。他の `notify`（Codex Computer Use など）を壊しません。
+- 旧コマンド `aster-agent` は移行期間中も同じ挙動のまま alias として動作します（stderr に案内が出るだけです）。
+
+## Aster Agent Console からの移行
+
+製品名が **Aster Agent Console → Aster Agent Audit** に変わりました。既存インストールが壊れることはありません。
+
+- `aster-agent` コマンドは `aster-audit` の alias として動き続けます（挙動は同一）。
+- 既存データは `~/.aster-agent-console/` に残ったまま使われ続けます。自動移行はしません。
+- 準備ができたら `aster-audit migrate`（まずは `--dry-run` で内容確認）を実行すると、`~/.aster-agent-audit/` へデータがコピーされます。移動ではなくコピーなので、`~/.aster-agent-console/` はそのまま残りバックアップになります。
+- 常駐サービスの launchd ラベルも変わったため（`com.asterworks.agent-audit`）、移行後は `aster-audit service install` を再実行してください。
+
+詳しい手順は英語版ガイド **[docs/migration-from-agent-console.md](docs/migration-from-agent-console.md)** を参照してください。
 
 ## 安全性・プライバシー
 

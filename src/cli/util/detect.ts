@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { FENCE_MARKER, LEGACY_FENCE_MARKER } from "../../core/branding";
 
 export type ConfigPath = {
   path: string;
@@ -58,7 +59,10 @@ export function detectAgents(cwd: string = process.cwd()): AgentDetection[] {
 
   // Claude's hook lives in settings.json; Codex has no hook — we read its
   // rollout logs directly, so "collecting" just means those logs exist.
-  const claudeHook = claudePaths.some((p) => fileMentions(p.path, "aster-agent"));
+  // Match both dir generations explicitly (pre- and post-rename installs).
+  const claudeHook = claudePaths.some(
+    (p) => fileMentions(p.path, FENCE_MARKER) || fileMentions(p.path, LEGACY_FENCE_MARKER)
+  );
   const codexSessions = join(home, ".codex", "sessions");
 
   return [

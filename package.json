@@ -1,8 +1,8 @@
 {
-  "name": "@asterworks/agent-console",
-  "version": "0.1.17",
+  "name": "@asterworks/agent-audit",
+  "version": "0.2.0",
   "private": false,
-  "description": "The local-first, no-account console that unifies safety, work-audit, and MCP security for Claude Code and Codex — everything runs on your machine.",
+  "description": "Local-first audit and security observability for AI coding agents (Claude Code + Codex) — records what agents did, detects risky behavior, keeps everything on your machine.",
   "type": "module",
   "license": "MIT",
   "author": "Aster Works",
@@ -16,7 +16,8 @@
     "dashboard",
     "local-first",
     "devtools",
-    "aster-works"
+    "aster-works",
+    "audit"
   ],
   "homepage": "https://github.com/Aster-Works/aster-agent-console#readme",
   "repository": {
@@ -33,6 +34,7 @@
     "node": ">=20"
   },
   "bin": {
+    "aster-audit": "dist-cli/index.js",
     "aster-agent": "dist-cli/index.js"
   },
   "files": [
@@ -59,7 +61,8 @@
     "typecheck:all": "pnpm typecheck && pnpm typecheck:server",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc -p tsconfig.json --noEmit"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "aster-audit": "tsx src/cli/index.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.6",

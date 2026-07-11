@@ -1,5 +1,5 @@
 /**
- * Deterministic demo dataset for Aster Agent Console (Phase 1).
+ * Deterministic demo dataset for Aster Agent Audit (Phase 1).
  *
  * Authored, not random, so the cockpit looks identical on every load and the
  * UI can be built before the collector exists. Contains both agents, the
@@ -27,7 +27,7 @@ import { seeded } from "@core/aggregate";
 /**
  * Anchored to *today*, not to a hardcoded date. A fixed date is a time bomb:
  * once it drifts past the default 7-day range, every screen of a fresh
- * `npx @asterworks/agent-console dashboard` renders empty. Times of day stay
+ * `npx @asterworks/agent-audit dashboard` renders empty. Times of day stay
  * fixed, so the demo is still deterministic within any given day.
  */
 export const DEMO_TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
@@ -39,12 +39,12 @@ function at(day: string, time: string): string {
 }
 
 export const DEMO_REPOS = [
-  "aster-agent-console",
+  "aster-agent-audit",
   "aster-support-navi",
   "keryx",
 ] as const;
 
-const REPO = "/Users/dev/code/aster-agent-console";
+const REPO = "/Users/dev/code/aster-agent-audit";
 
 // ----------------------------------------------------------------------------
 // Sessions
@@ -435,7 +435,7 @@ function riskToFinding(r: RiskRow) {
 const sessCc01Events: NormalizedAgentEvent[] = [
   ev("evt_cc_01", "claude-code", "session_start", "sess_cc_01", "10:08:02", {
     title: "Session started",
-    summary: "claude-opus-4-8 · aster-agent-console",
+    summary: "claude-opus-4-8 · aster-agent-audit",
   }),
   ev("evt_cc_02", "claude-code", "user_prompt", "sess_cc_01", "10:08:40", {
     title: "Implement session orchestration",
@@ -519,7 +519,7 @@ const sessCc01Events: NormalizedAgentEvent[] = [
 const sessCx01Events: NormalizedAgentEvent[] = [
   ev("evt_cx_01", "codex", "session_start", "sess_cx_01", "09:31:11", {
     title: "Session started",
-    summary: "gpt-5-codex · aster-agent-console",
+    summary: "gpt-5-codex · aster-agent-audit",
   }),
   ev("evt_cx_02", "codex", "user_prompt", "sess_cx_01", "09:31:48", {
     title: "Harden parser for malformed hook payloads",
@@ -656,7 +656,7 @@ function buildHeatmap(): HeatCell[] {
 }
 
 export const demoRepoActivity: RepoActivity = {
-  repo: "aster-agent-console",
+  repo: "aster-agent-audit",
   filesChanged: 42,
   churn: 1327,
   commits: 6,

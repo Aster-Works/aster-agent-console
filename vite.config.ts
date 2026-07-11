@@ -1,11 +1,17 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 
-// Aster Agent Console — Phase 1 dashboard build.
-// The dashboard is a fully static SPA; the CLI (Phase 3) serves dist/web.
+// Same single source of truth the CLI uses (tsup define) — the sidebar version
+// can no longer drift from package.json.
+const version: string = JSON.parse(readFileSync("./package.json", "utf8")).version;
+
+// Aster Agent Audit — dashboard build.
+// The dashboard is a fully static SPA; the CLI serves dist/web.
 export default defineConfig({
+  define: { __AAC_VERSION__: JSON.stringify(version) },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

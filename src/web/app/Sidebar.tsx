@@ -9,6 +9,10 @@ import { Sparkline } from "../components/Sparkline";
 import { StatusDot } from "../components/ui";
 import { useT } from "../lib/i18n";
 
+// Stamped by Vite's define from package.json; falls back under bare test tools.
+declare const __AAC_VERSION__: string;
+const APP_VERSION = typeof __AAC_VERSION__ === "string" ? __AAC_VERSION__ : "dev";
+
 export function Sidebar() {
   const dataset = useAppStore((s) => s.dataset);
   const status = dataset.status;
@@ -30,9 +34,9 @@ export function Sidebar() {
         </div>
         <div className="min-w-0 leading-tight">
           <div className="aac-truncate text-[13px] font-semibold tracking-tight text-ink">
-            Aster Agent Console
+            Aster Agent Audit
           </div>
-          <div className="text-[10px] text-ink-3">v0.1 · local-first</div>
+          <div className="text-[10px] text-ink-3">{`v${APP_VERSION} · local-first`}</div>
         </div>
       </div>
 

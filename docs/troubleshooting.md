@@ -2,14 +2,14 @@
 
 Practical fixes for the most common issues. Each item is **symptom → cause → fix**.
 
-Aster Agent Console is local-first and in beta. Everything runs on `127.0.0.1:48321`; nothing is sent to the cloud, and your data lives in `~/.aster-agent-console/`.
+Aster Agent Audit is local-first and in beta. Everything runs on `127.0.0.1:48321`; nothing is sent to the cloud, and your data lives in `~/.aster-agent-audit/`.
 
-If you installed the published beta, use `aster-agent` (from `npm install -g @asterworks/agent-console`) or prefix commands with `npx @asterworks/agent-console`.
+If you installed the published beta, use `aster-audit` (from `npm install -g @asterworks/agent-audit`) or prefix commands with `npx @asterworks/agent-audit`.
 
 A good first move for almost any problem is:
 
 ```bash
-aster-agent doctor
+aster-audit doctor
 ```
 
 It checks your Node version, storage, collector health, hook status, and MCP posture in one pass.
@@ -27,7 +27,7 @@ It checks your Node version, storage, collector health, hook status, and MCP pos
 **Fix:** Install the collector hooks, then switch the top-bar toggle to **Live**.
 
 ```bash
-aster-agent init --install-hooks
+aster-audit init --install-hooks
 ```
 
 Your existing agent config is backed up first. After the hooks fire on your next Claude Code / Codex activity, live data appears. Until then, demo mode is the intended experience.
@@ -35,43 +35,43 @@ Your existing agent config is backed up first. After the hooks fire on your next
 To confirm hooks are actually wired in:
 
 ```bash
-aster-agent hooks status
+aster-audit hooks status
 ```
 
 ---
 
 ## Port 48321 already in use
 
-**Symptom:** `aster-agent dashboard` prints `Could not start the local server on 127.0.0.1:48321` and suggests another instance may be running.
+**Symptom:** `aster-audit dashboard` prints `Could not start the local server on 127.0.0.1:48321` and suggests another instance may be running.
 
-**Cause:** The fixed collector port (`48321`) is taken — usually another `aster-agent dashboard` already running, or an unrelated process on that port.
+**Cause:** The fixed collector port (`48321`) is taken — usually another `aster-audit dashboard` already running, or an unrelated process on that port.
 
 **Fix:** Point the dashboard at a different port:
 
 ```bash
-aster-agent dashboard --port 48322
+aster-audit dashboard --port 48322
 ```
 
-Note that hooks POST to the default port, so a non-default port is best for a quick look at existing data rather than live collection. If you just want to reclaim the default, stop the other instance (Ctrl+C in its terminal) and rerun `aster-agent dashboard`.
+Note that hooks POST to the default port, so a non-default port is best for a quick look at existing data rather than live collection. If you just want to reclaim the default, stop the other instance (Ctrl+C in its terminal) and rerun `aster-audit dashboard`.
 
 ---
 
 ## `doctor` says the local server is not running
 
-**Symptom:** `aster-agent doctor` reports `Local server · not running`.
+**Symptom:** `aster-audit doctor` reports `Local server · not running`.
 
 **Cause:** `doctor` only probes `http://127.0.0.1:48321/health`. If no dashboard is up, there's nothing to answer — this is informational, not an error.
 
 **Fix:** Start the collector in another terminal and leave it running:
 
 ```bash
-aster-agent dashboard
+aster-audit dashboard
 ```
 
 If your dashboard runs on a custom port, tell `doctor` where to look:
 
 ```bash
-aster-agent doctor --port 48322
+aster-audit doctor --port 48322
 ```
 
 ---
@@ -85,7 +85,7 @@ aster-agent doctor --port 48322
 1. **Confirm what's actually installed and where:**
 
    ```bash
-   aster-agent hooks status
+   aster-audit hooks status
    ```
 
    It reports each agent as *installed* (with the config path), *detected · not installed*, or *not detected*.
@@ -100,13 +100,13 @@ aster-agent doctor --port 48322
 3. **Codex — `config.toml` notify.** The Codex hook is a fenced block appended to `~/.codex/config.toml` that sets `notify` to the console's hook script. Any pre-existing top-level `notify` line is commented out in place (prefixed `# [aster-agent] disabled:`) so ours takes effect; `hooks uninstall` restores it. Confirm the managed fence is present:
 
    ```bash
-   grep -n "aster-agent-console" ~/.codex/config.toml
+   grep -n "aster-agent-audit" ~/.codex/config.toml
    ```
 
-4. **Is the collector reachable?** Hooks POST to the running dashboard. If the collector is offline when an event fires, the hook doesn't fail or block your agent — it appends a redacted-minimal event to the spool (`~/.aster-agent-console/spool/`). Those are replayed automatically the next time you run:
+4. **Is the collector reachable?** Hooks POST to the running dashboard. If the collector is offline when an event fires, the hook doesn't fail or block your agent — it appends a redacted-minimal event to the spool (`~/.aster-agent-audit/spool/`). Those are replayed automatically the next time you run:
 
    ```bash
-   aster-agent dashboard
+   aster-audit dashboard
    ```
 
    Watch for the `Imported spool` line at startup — that's your buffered events arriving.
@@ -120,7 +120,7 @@ aster-agent doctor --port 48322
 Everything lives under:
 
 ```
-~/.aster-agent-console/
+~/.aster-agent-audit/
 ├── agent-console.db     # SQLite (WAL mode) — the honest record of collected events
 ├── hooks/               # generated per-agent hook scripts
 ├── backups/             # timestamped backups of agent config, made before every change
@@ -139,14 +139,14 @@ Secrets are redacted **before** storage, so the DB is not meant to hold raw secr
 **Fix:** Remove the hooks first (this restores each agent's original config from backup), then delete the data directory:
 
 ```bash
-aster-agent hooks uninstall
-rm -rf ~/.aster-agent-console
+aster-audit hooks uninstall
+rm -rf ~/.aster-agent-audit
 ```
 
 If you installed the CLI globally, also:
 
 ```bash
-npm uninstall -g @asterworks/agent-console
+npm uninstall -g @asterworks/agent-audit
 ```
 
 `hooks uninstall` backs up before it changes anything and removes the managed hook from your `settings.json` / `config.toml`, so your config returns to its prior state (and a fresh backup is kept if you need to inspect it).
@@ -155,7 +155,7 @@ npm uninstall -g @asterworks/agent-console
 
 ## `scan` finds nothing
 
-**Symptom:** `aster-agent scan` prints `No MCP config files found under … or your home directory.`
+**Symptom:** `aster-audit scan` prints `No MCP config files found under … or your home directory.`
 
 **Cause:** The scanner only discovers **JSON** MCP config files. If you have none in the scanned locations — or your only MCP config is Codex's `config.toml` — there's nothing to report.
 
@@ -170,7 +170,7 @@ npm uninstall -g @asterworks/agent-console
 The scanner reads `mcpServers` or `servers` keys. Point it at the right directory if your project config is elsewhere:
 
 ```bash
-aster-agent scan ~/path/to/project
+aster-audit scan ~/path/to/project
 ```
 
 **Codex `config.toml` is TOML, which is not supported and is explicitly deferred** — this is by design (AsterGuard doesn't parse it either), not a scan failure. A clean result on a Codex-only setup is expected.
@@ -179,17 +179,17 @@ The scan is static and heuristic — it inspects config as text and never execut
 
 ---
 
-## Node version errors / `aster-agent` won't run
+## Node version errors / `aster-audit` won't run
 
 **Symptom:** The CLI crashes on startup, or `doctor` flags `Node.js ≥ 20`.
 
-**Cause:** Aster Agent Console requires **Node 20+** and is ESM-only.
+**Cause:** Aster Agent Audit requires **Node 20+** and is ESM-only.
 
 **Fix:** Upgrade Node to 20 or newer, then verify:
 
 ```bash
 node --version   # must be v20.x or higher
-aster-agent doctor
+aster-audit doctor
 ```
 
 ---

@@ -30,7 +30,10 @@ describe("pruneOlderThan (retention)", () => {
 describe("buildPlist", () => {
   it("produces a launchd plist that runs `serve` at load and keeps alive", () => {
     const p = buildPlist("/usr/bin/node", "/pkg/dist-cli/index.js", "/logs/service.log");
-    expect(p).toContain("com.asterworks.agent-console");
+    // Deliberately a literal: the plist must carry the NEW label (the legacy
+    // com.asterworks.agent-console label is only ever read, never written).
+    expect(p).toContain("com.asterworks.agent-audit");
+    expect(p).not.toContain("com.asterworks.agent-console.plist");
     expect(p).toContain("<string>/usr/bin/node</string>");
     expect(p).toContain("<string>/pkg/dist-cli/index.js</string>");
     expect(p).toContain("<string>serve</string>");

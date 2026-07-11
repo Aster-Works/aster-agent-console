@@ -32,7 +32,7 @@ export async function init(opts: InitOptions = {}): Promise<void> {
   brand();
   line(
     dryRun
-      ? pc.dim("\nDry run — nothing will be written. Showing what `aster-agent init` would do.\n")
+      ? pc.dim("\nDry run — nothing will be written. Showing what `aster-audit init` would do.\n")
       : ""
   );
 
@@ -99,12 +99,12 @@ export async function init(opts: InitOptions = {}): Promise<void> {
       serviceInstall({ skipBrand: true });
     } else if (opts.noService) {
       heading("Background collector");
-      line(`  ${sym.info} Skipped (--no-service). Enable later with ${pc.cyan("aster-agent service install")}.`);
+      line(`  ${sym.info} Skipped (--no-service). Enable later with ${pc.cyan("aster-audit service install")}.`);
     }
   } else {
     heading("Hook installation");
     line(`  ${sym.info} Hooks are not installed by default. To collect real activity, run:`);
-    line(`     ${pc.cyan("aster-agent init --install-hooks")} ${pc.dim("(existing config is backed up first)")}`);
+    line(`     ${pc.cyan("aster-audit init --install-hooks")} ${pc.dim("(existing config is backed up first)")}`);
     for (const a of agents.filter((x) => x.present && !x.hookInstalled)) {
       const target = a.configPaths.find((p) => p.exists)?.path ?? a.configPaths[0].path;
       line(
@@ -115,9 +115,9 @@ export async function init(opts: InitOptions = {}): Promise<void> {
 
   heading("Next steps");
   if (dryRun) {
-    line(`  ${sym.bullet} Run ${pc.cyan("aster-agent init")} to create local files (no agent files touched).`);
+    line(`  ${sym.bullet} Run ${pc.cyan("aster-audit init")} to create local files (no agent files touched).`);
   }
-  line(`  ${sym.bullet} Run ${pc.cyan("aster-agent dashboard")} to open the console.`);
-  line(`  ${sym.bullet} Run ${pc.cyan("aster-agent doctor")} to verify your setup.`);
+  line(`  ${sym.bullet} Run ${pc.cyan("aster-audit dashboard")} to open the console.`);
+  line(`  ${sym.bullet} Run ${pc.cyan("aster-audit doctor")} to verify your setup.`);
   line("");
 }

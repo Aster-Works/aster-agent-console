@@ -2,7 +2,7 @@ import { ChevronRight, TriangleAlert } from "lucide-react";
 import { cn } from "../lib/cn";
 
 /**
- * Renders a shell command as inert, read-only text. Aster Agent Console never
+ * Renders a shell command as inert, read-only text. Aster Agent Audit never
  * executes demo or incoming commands — this only displays them. Long commands
  * scroll horizontally instead of breaking the layout.
  */

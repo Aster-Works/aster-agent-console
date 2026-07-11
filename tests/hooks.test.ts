@@ -64,11 +64,53 @@ describe("agent detection", () => {
     mkdirSync(join(cwd, ".claude"), { recursive: true });
     writeFileSync(
       join(cwd, ".claude", "settings.json"),
-      JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "node ~/.aster-agent-console/hooks/claude-code-hook.mjs" }] }] } })
+      JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "node ~/.aster-agent-audit/hooks/claude-code-hook.mjs" }] }] } })
     );
     const claude = detectAgents(cwd).find((a) => a.agent === "claude-code")!;
     expect(claude.present).toBe(true);
     expect(claude.hookInstalled).toBe(true);
     rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it("still detects a hook installed by a pre-rename version (legacy path)", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "aac-proj-legacy-"));
+    mkdirSync(join(cwd, ".claude"), { recursive: true });
+    writeFileSync(
+      join(cwd, ".claude", "settings.json"),
+      JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ type: "command", command: "node ~/.aster-agent-console/hooks/claude-code-hook.mjs" }] }] } })
+    );
+    const claude = detectAgents(cwd).find((a) => a.agent === "claude-code")!;
+    expect(claude.hookInstalled).toBe(true);
+    rmSync(cwd, { recursive: true, force: true });
+  });
+});
+
+describe("cleanupCodexConfig — both fence generations", () => {
+  it("removes a managed block written BEFORE the rename (legacy fences)", async () => {
+    const { cleanupCodexConfig } = await import("../src/cli/hooks/installer");
+    const body = [
+      'model = "gpt-5-codex"',
+      "# >>> aster-agent-console (managed) >>>",
+      'notify = ["node", "/old/hook.mjs"]',
+      "# <<< aster-agent-console (managed) <<<",
+      "sandbox = true",
+    ].join("\n");
+    const out = cleanupCodexConfig(body);
+    expect(out).not.toContain("managed");
+    expect(out).toContain('model = "gpt-5-codex"');
+    expect(out).toContain("sandbox = true");
+  });
+
+  it("removes a managed block with NEW fences too", async () => {
+    const { cleanupCodexConfig } = await import("../src/cli/hooks/installer");
+    const body = [
+      "# >>> aster-agent-audit (managed) >>>",
+      'notify = ["node", "/new/hook.mjs"]',
+      "# <<< aster-agent-audit (managed) <<<",
+      'model = "gpt-5-codex"',
+    ].join("\n");
+    const out = cleanupCodexConfig(body);
+    expect(out).not.toContain("managed");
+    expect(out).toContain('model = "gpt-5-codex"');
   });
 });

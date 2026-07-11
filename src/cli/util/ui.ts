@@ -26,5 +26,5 @@ export function check(ok: boolean | "warn", label: string, detail?: string): voi
 }
 
 export function brand(): void {
-  line(pc.bold(pc.green("Aster") + pc.cyan(" Agent Console")) + pc.dim("  local-first agent safety & work audit"));
+  line(pc.bold(pc.green("Aster") + pc.cyan(" Agent Audit")) + pc.dim("  local-first audit & security for AI coding agents"));
 }

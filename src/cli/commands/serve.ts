@@ -1,5 +1,5 @@
 /**
- * `aster-agent serve` — run the collector headlessly (no browser). This is what
+ * `aster-audit serve` — run the collector headlessly (no browser). This is what
  * the background service (launchd) runs so events are collected even when no
  * dashboard is open. Logs go to stdout/stderr, which the service captures.
  */
@@ -23,11 +23,11 @@ export async function serve(opts: { port?: number; db?: string } = {}): Promise<
     const imported = importSpool(srv.collector, SPOOL_DIR);
     // eslint-disable-next-line no-console
     console.log(
-      `[${new Date().toISOString()}] aster-agent collector serving http://${started.host}:${started.port} · db=${dbPath} · imported ${imported} spooled event(s)`
+      `[${new Date().toISOString()}] aster-audit collector serving http://${started.host}:${started.port} · db=${dbPath} · imported ${imported} spooled event(s)`
     );
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error(`[aster-agent] could not bind ${HOST}:${port}: ${(err as Error).message}`);
+    console.error(`[aster-audit] could not bind ${HOST}:${port}: ${(err as Error).message}`);
     db.close();
     process.exit(1);
     return;

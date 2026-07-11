@@ -12,15 +12,30 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, join } from "node:path";
+import {
+  FENCE_END,
+  FENCE_START,
+  FENCE_MARKER,
+  LEGACY_FENCE_END,
+  LEGACY_FENCE_MARKER,
+  LEGACY_FENCE_START,
+} from "../../core/branding";
 import { BACKUP_DIR, HOOKS_DIR, PORT, HOST } from "../util/paths";
 import { detectAgents, type AgentDetection } from "../util/detect";
 import { hookScript } from "./script";
 
 const ENDPOINT = `http://${HOST}:${PORT}/events`;
-const MARKER = "aster-agent-console";
 const CLAUDE_EVENTS = ["PreToolUse", "PostToolUse", "UserPromptSubmit", "SessionStart", "Stop"] as const;
-const FENCE_START = "# >>> aster-agent-console (managed) >>>";
-const FENCE_END = "# <<< aster-agent-console (managed) <<<";
+
+/**
+ * Is this settings.json hook command one of ours? Must recognize commands
+ * written by ANY version — old installs point into `.aster-agent-console/`,
+ * new ones into `.aster-agent-audit/` — or uninstall can no longer restore
+ * a config written before the rename.
+ */
+function isManagedCommand(cmd: string | undefined): boolean {
+  return Boolean(cmd && (cmd.includes(FENCE_MARKER) || cmd.includes(LEGACY_FENCE_MARKER)));
+}
 
 export type HookAction = {
   agent: string;
@@ -84,7 +99,7 @@ function installClaude(det: AgentDetection, dryRun: boolean): HookAction {
 
   for (const event of CLAUDE_EVENTS) {
     const arr = (hooks[event] ??= []) as Array<{ matcher?: string; hooks?: Array<{ type: string; command: string }> }>;
-    const present = arr.some((g) => g.hooks?.some((h) => h.command?.includes(MARKER)));
+    const present = arr.some((g) => g.hooks?.some((h) => isManagedCommand(h.command)));
     if (!present) {
       const isTool = event === "PreToolUse" || event === "PostToolUse";
       arr.push({ ...(isTool ? { matcher: "*" } : {}), hooks: [{ type: "command", command }] });
@@ -110,8 +125,14 @@ const CODEX_AUTO_DETAIL = "automatic — reads ~/.codex/sessions (no config chan
  */
 export function cleanupCodexConfig(body: string): string {
   let out = body;
-  const fence = new RegExp(`\\n*${escapeRe(FENCE_START)}[\\s\\S]*?${escapeRe(FENCE_END)}\\n?`, "g");
-  out = out.replace(fence, "\n");
+  // Both fence generations: blocks written before AND after the product rename.
+  for (const [start, end] of [
+    [LEGACY_FENCE_START, LEGACY_FENCE_END],
+    [FENCE_START, FENCE_END],
+  ]) {
+    const fence = new RegExp(`\\n*${escapeRe(start)}[\\s\\S]*?${escapeRe(end)}\\n?`, "g");
+    out = out.replace(fence, "\n");
+  }
   const withoutDisabled = out.replace(/^# \[aster-agent\] disabled: .*$/gm, "");
   const hasActiveNotify = /^\s*notify\s*=/m.test(withoutDisabled);
   if (hasActiveNotify) {
@@ -201,7 +222,7 @@ export function uninstallHooks(cwd = process.cwd()): HookAction[] {
       const hooks = settings.hooks ?? {};
       for (const event of Object.keys(hooks)) {
         hooks[event] = (hooks[event] as Array<{ hooks?: Array<{ command?: string }> }>).filter(
-          (g) => !g.hooks?.some((h) => h.command?.includes(MARKER))
+          (g) => !g.hooks?.some((h) => isManagedCommand(h.command))
         );
         if ((hooks[event] as unknown[]).length === 0) delete hooks[event];
       }

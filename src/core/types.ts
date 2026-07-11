@@ -1,5 +1,5 @@
 /**
- * Aster Agent Console — normalized event model.
+ * Aster Agent Audit — normalized event model.
  *
  * Mirrors `04_Event Schema_Aster Agent Console.md`. These types are the single
  * source of truth shared by the dashboard (Phase 1), the local collector and
