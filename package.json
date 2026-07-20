@@ -1,6 +1,6 @@
 {
   "name": "@asterworks/agent-audit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "Local-first audit and security observability for AI coding agents (Claude Code + Codex) — records what agents did, detects risky behavior, keeps everything on your machine.",
   "type": "module",
