@@ -27,9 +27,9 @@ and `docs/release.md` (now a stub pointing here).
       (`git remote set-url origin https://github.com/Aster-Works/aster-agent-audit.git`) —
       not required (the redirect covers it) but avoids relying on the redirect
       long-term.
-- [ ] Update repo settings that reference the old name directly: About/description
+- [x] Update repo settings that reference the old name directly: About/description (done via gh; social preview image, if any, is web-UI only)
       text, topics, social preview image, GitHub Pages config (if any).
-- [ ] Update the **security advisory** and **issues** links referenced from
+- [x] Update the **security advisory** and **issues** links referenced from
       README/CONTRIBUTING once the new URL is confirmed working (see §4).
 
 ---
