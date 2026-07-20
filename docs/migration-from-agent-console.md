@@ -10,14 +10,14 @@ unstuck if something looks off.
 |---|---|---|
 | Product name | Aster Agent Console | Aster Agent Audit |
 | CLI command | `aster-agent` | `aster-audit` |
-| npm package | `@asterworks/agent-console` | `@asterworks/agent-audit` (not yet published — see below) |
+| npm package | `@asterworks/agent-console` | `@asterworks/agent-audit` |
 | Data directory | `~/.aster-agent-console/` | `~/.aster-agent-audit/` |
 | Background service (launchd label) | `com.asterworks.agent-console` | `com.asterworks.agent-audit` |
 
-`@asterworks/agent-audit` has **not been published to npm yet** — publishing is
-a manual step. Until it is, `@asterworks/agent-console` remains the latest
-published package, and installing it still gives you the `aster-agent`
-command.
+`@asterworks/agent-audit` is published on npm — install it with
+`npm install -g @asterworks/agent-audit`. It provides **both** the
+`aster-audit` command and the legacy `aster-agent` alias, so switching
+packages does not change any script or muscle memory.
 
 ## Nothing breaks automatically
 
@@ -143,10 +143,10 @@ directory that exists.
 
 **Will `npm install -g @asterworks/agent-console` still work after the
 rename?**
-Yes, for now — `@asterworks/agent-audit` hasn't been published yet, so the
-legacy package is still the way to install. Once `@asterworks/agent-audit` is
-published, see the note at the top of this page (and the README) for the
-current recommended install command.
+Yes — the legacy package stays installable (it is never unpublished), but it
+no longer receives updates. New installs should use
+`npm install -g @asterworks/agent-audit`, which also provides the
+`aster-agent` alias.
 
 **Does migrating delete my old data?**
 No. `migrate` copies data; it never deletes or moves the legacy directory.

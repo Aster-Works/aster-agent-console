@@ -13,9 +13,9 @@ and `docs/release.md` (now a stub pointing here).
 
 ## 1. GitHub repository rename
 
-- [ ] Rename the repo on GitHub: `Aster-Works/aster-agent-console` →
+- [x] Rename the repo on GitHub: `Aster-Works/aster-agent-console` →
       `Aster-Works/aster-agent-audit` (Settings → repository name).
-- [ ] Confirm GitHub's automatic redirect works: the old URL
+- [x] Confirm GitHub's automatic redirect works (verified 2026-07-11: `git ls-remote` on the old URL resolves): the old URL
       `github.com/Aster-Works/aster-agent-console` should redirect to the new
       one for web traffic, `git clone`, and `git remote` pulls/pushes.
       Verify with a fresh clone:
@@ -23,7 +23,7 @@ and `docs/release.md` (now a stub pointing here).
       git clone https://github.com/Aster-Works/aster-agent-console.git /tmp/rename-check
       cd /tmp/rename-check && git remote -v   # should resolve, possibly via redirect
       ```
-- [ ] Update any local remotes on maintainer machines
+- [x] Update any local remotes (done on this machine) on maintainer machines
       (`git remote set-url origin https://github.com/Aster-Works/aster-agent-audit.git`) —
       not required (the redirect covers it) but avoids relying on the redirect
       long-term.
@@ -40,17 +40,17 @@ and `docs/release.md` (now a stub pointing here).
 `https://github.com/Aster-Works/aster-agent-console` on purpose — it's wired
 to update here, once the rename is real, not before.
 
-- [ ] After §1 is confirmed working, update in `package.json`:
+- [x] After §1 is confirmed working, update in `package.json`:
       - `repository.url` → `git+https://github.com/Aster-Works/aster-agent-audit.git`
       - `homepage` → `https://github.com/Aster-Works/aster-agent-audit#readme`
       - `bugs.url` → `https://github.com/Aster-Works/aster-agent-audit/issues`
-- [ ] Update `REPO_URL` in `src/core/branding.ts` to match.
-- [ ] Grep for any other hardcoded `Aster-Works/aster-agent-console` URLs in
+- [x] Update `REPO_URL` in `src/core/branding.ts` to match.
+- [x] Grep for any other hardcoded `Aster-Works/aster-agent-console` URLs in
       `README.md`, `docs/`, and source, and update them:
       ```bash
       grep -rn "Aster-Works/aster-agent-console" README.md docs/ src/
       ```
-- [ ] Commit this as its own change (`chore: point repo URLs at renamed repo`)
+- [x] Commit this as its own change (`chore: point repo URLs at renamed repo`)
       so it's easy to review and revert independently of feature work.
 
 **Timing:** do this only after the GitHub rename (§1) is live, so the URLs in
@@ -60,10 +60,10 @@ a freshly published package are never briefly wrong.
 
 ## 3. npm: publish the new package
 
-- [ ] Bump `version` in `package.json` if not already done for this release.
-- [ ] Pre-flight (all green before publishing):
+- [x] Bump `version` in `package.json` (0.2.0).
+- [x] Pre-flight (all green before publishing):
       ```bash
-      pnpm test            # vitest — 133 tests must pass
+      pnpm test            # vitest — full suite must pass (191 at 0.2.0)
       pnpm typecheck:all
       pnpm build:all
       npm publish --dry-run
@@ -71,14 +71,14 @@ a freshly published package are never briefly wrong.
       Confirm the dry-run tarball contains `dist/web`, `dist-cli/`, `README.md`,
       `CHANGELOG.md`, `LICENSE`, `package.json` — no source, no `.db`, no
       secrets.
-- [ ] Publish the new package:
+- [x] Publish the new package (0.2.0 published 2026-07-11):
       ```bash
       npm publish --access public
       ```
       `bin` already maps **both** `aster-audit` and `aster-agent` to
       `dist-cli/index.js` (see `package.json`), so installing
       `@asterworks/agent-audit` gives users both commands immediately.
-- [ ] Confirm on npm: `npm view @asterworks/agent-audit` shows the expected
+- [x] Confirm on npm: `npm view @asterworks/agent-audit` shows the expected
       version and `bin` entries.
 
 ---
@@ -103,19 +103,19 @@ Only after §3 is confirmed live and installable.
 
 - [ ] Confirm §2's URL changes shipped in the published package
       (`npm view @asterworks/agent-audit repository.url`).
-- [ ] Update the README's "Not published yet" callouts (English and Japanese)
+- [x] Update the README's "Not published yet" callouts (English and Japanese)
       now that `@asterworks/agent-audit` is live:
       - Remove the "Not published yet" / "まだ未公開です" notes.
       - Change the install snippet's comment if it referenced the legacy
         package as current.
-- [ ] Update `docs/migration-from-agent-console.md`'s FAQ answer about
+- [x] Update `docs/migration-from-agent-console.md`'s FAQ answer about
       publish status.
 
 ---
 
 ## 6. Release tag & announcement
 
-- [ ] Tag the release:
+- [x] Tag the release (v0.2.0 pushed):
       ```bash
       git tag v$(node -p "require('./package.json').version")
       git push --tags
